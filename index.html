@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sum Tracker Trainer — Competitive LoL Cooldown Suite</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script>
+    if (typeof tailwind === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.tailwindcss.com';
+      document.head.appendChild(s);
+    }
+  </script>
+  <style>
+    :root {
+      --gold: #C89B3C;
+      --gold-bright: #E5B84B;
+      --gold-dim: #785A28;
+      --lol-ally: #40A8E8;
+      --lol-enemy: #E04343;
+      --lol-spell: #D9A336;
+      --lol-timestamp: #C8C4B8;
+      --lol-system: #989488;
+      --bg-dark: #010A13;
+      --bg-panel: #091220;
+      --border-gold: #1B2432;
+      --border-highlight: #463714;
+      --text-light: #A09B8C;
+      --text-bright: #F0E6D2;
+      --flash-color: #FFD700;
+      --correct: #1DB954;
+      --wrong: #E84057;
+      --warn: #F59E0B;
+      --teal: #14B8A6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .mono { font-family: 'Consolas', 'Cascadia Code', 'JetBrains Mono', monospace; }
+
+    /* Authentic League Chat Styling */
+    .lol-chat-feed {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.52;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.78);
+      user-select: text;
+    }
+
+    .lol-line {
+      padding: 2.5px 8px;
+      border-radius: 3px;
+      transition: background 0.18s ease;
+    }
+    .lol-line:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .lol-line.unanswered-ping {
+      background: rgba(217, 163, 54, 0.09);
+      border-left: 2px solid var(--lol-spell);
+    }
+
+    .chat-input {
+      background: rgba(4, 9, 15, 0.98);
+      border: 1px solid var(--border-highlight);
+      color: var(--text-bright);
+      font-family: 'Consolas', 'Cascadia Code', monospace;
+      font-size: 14.5px;
+      outline: none;
+      caret-color: var(--gold);
+      letter-spacing: 0.35px;
+      user-select: text;
+    }
+    .chat-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 1px rgba(200, 155, 60, 0.28);
+    }
+    .chat-input::placeholder { color: #364152; }
+    .chat-input::selection { background: rgba(200, 155, 60, 0.38); }
+
+    @keyframes clockJumpAnim {
+      0% { transform: scale(1.12); color: var(--gold); }
+      100% { transform: scale(1); color: var(--text-bright); }
+    }
+    .clock-jump { animation: clockJumpAnim 0.45s ease-out; }
+
+    @keyframes popFlash {
+      0% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+    .pop-badge { animation: popFlash 0.18s ease-out; }
+
+    .mode-btn {
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-light);
+      background: transparent;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .mode-btn:hover { color: var(--text-bright); }
+    .mode-btn.active {
+      background: rgba(200, 155, 60, 0.16);
+      color: var(--gold);
+      border-color: var(--border-highlight);
+    }
+
+    .key-cap {
+      display: inline-block;
+      background: #161E2B;
+      border: 1px solid #283346;
+      border-bottom: 2px solid #283346;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      color: var(--text-light);
+      font-family: 'Consolas', monospace;
+      line-height: 1.35;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+    .stat-num { font-variant-numeric: tabular-nums; }
+
+    .timer-bar {
+      height: 2px;
+      border-radius: 1px;
+      transition: width 0.35s ease;
+    }
+
+    .rift-backdrop {
+      background:
+        radial-gradient(circle at 80% 18%, rgba(16, 38, 56, 0.38) 0%, transparent 55%),
+        radial-gradient(circle at 20% 82%, rgba(24, 36, 26, 0.25) 0%, transparent 55%),
+        linear-gradient(180deg, #040B12 0%, #06101B 100%);
+    }
+
+    .spell-slot {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #5A461C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 0.1s ease, border-color 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .spell-slot:hover {
+      transform: scale(1.08);
+      border-color: var(--gold);
+    }
+    .spell-slot.down {
+      background: #0D1522 !important;
+      border-color: #2A3446 !important;
+      color: #526074 !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="flex flex-col h-screen">
+
+    <!-- ========== TOP BAR ========== -->
+    <header class="flex items-center justify-between px-4 py-2"
+            style="background: var(--bg-panel); border-bottom: 1px solid var(--border-gold);">
+      <!-- Left: Brand + 4 Training Modes -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm font-bold tracking-wide" style="color: var(--gold);">⚡ SUM TRAINER</span>
+        </div>
+
+        <div class="flex items-center gap-1 p-1 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
+          <button id="mode-instant" onclick="setMode('instant')" class="mode-btn active"
+                  title="Progressive game clock with full clipboard auditing: keep active timers, delete expired ones, add new ones">
+            ⚡ Instant Jumps
+          </button>
+          <button id="mode-burst" onclick="setMode('burst')" class="mode-btn"
+                  title="2-4 flashes popped in a skirmish/teamfight + full clipboard auditing">
+            ⚔️ Teamfight Bursts
+          </button>
+          <button id="mode-rapid" onclick="setMode('rapid')" class="mode-btn"
+                  title="Single-ping chat reps at random timestamps (no clipboard carryover)">
+            🎯 Rapid Solo
+          </button>
+          <button id="mode-math" onclick="setMode('math')" class="mode-btn"
+                  title="60-second pure +5:00 mental math sprint (instant 4-digit auto-submit)">
+            🧠 60s Math Sprint
+          </button>
+        </div>
+      </div>
+
+      <!-- Center: Game Clock + Jump Indicator -->
+      <div class="flex items-center gap-3">
+        <div class="flex flex-col items-center">
+          <div class="flex items-center gap-2">
+            <div class="mono text-2xl font-bold tracking-wider stat-num" id="clock" style="color: var(--text-bright);">
+              00:00
+            </div>
+            <span id="jumpBadge" class="mono text-xs px-2 py-0.5 rounded font-semibold hidden"
+                  style="background: rgba(200, 155, 60, 0.18); color: var(--gold); border: 1px solid var(--border-highlight);">
+              ⏭ +1:30
+            </span>
+          </div>
+          <div id="clockSub" class="text-[10px] tracking-wider uppercase" style="color: #4A5568;">
+            Full List Audit · Keep Active &amp; Purge Expired
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Tolerance + Team Settings + Action Buttons -->
+      <div class="flex items-center gap-2">
+        <label id="toleranceWrap" class="flex items-center gap-1.5 text-xs mr-1" style="color: var(--text-light);"
+               title="In real games, teammates ping late. Rounding DOWN (early by up to 10s) is safe; rounding UP (late) gets your team killed!">
+          <span>Window:</span>
+          <select id="toleranceSelect" onchange="updateTolerance(this.value)" class="text-xs px-2 py-1 rounded"
+                  style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-bright); outline: none;">
+            <option value="10" selected>Safe Early (0 to -10s)</option>
+            <option value="5">Strict 5s (0 to -5s)</option>
+            <option value="0">Exact Second (0s)</option>
+          </select>
+        </label>
+
+        <button onclick="toggleRosterModal()" class="px-2.5 py-1.5 rounded text-xs"
+                style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                title="Customize your 5-man team gamer tags and timer format preference">
+          ⚙️ Team
+        </button>
+
+        <button id="btnNext" onclick="manualNext()" class="px-3 py-1.5 rounded text-xs font-medium hidden"
+                style="background: #131E32; border: 1px solid #2A3A54; color: var(--text-bright); cursor: pointer;"
+                title="Skip to next ping/fight immediately (Shortcut: Space)">
+          ⏭ Next <span class="key-cap ml-1">Space</span>
+        </button>
+        <button id="btnStart" onclick="toggleGame()" class="px-4 py-1.5 rounded text-xs font-semibold tracking-wide"
+                style="background: var(--gold); color: var(--bg-dark); border: none; cursor: pointer;">
+          START
+        </button>
+        <button onclick="resetGame()" class="px-3 py-1.5 rounded text-xs"
+                style="background: transparent; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                title="Roll a new 5v5 champion draft and reset session stats">
+          NEW DRAFT
+        </button>
+      </div>
+    </header>
+
+    <!-- ========== MAIN ========== -->
+    <div class="flex flex-1 overflow-hidden">
+
+      <!-- LEFT: TAB Scoreboard & Pro Cleanup Guide -->
+      <aside class="flex flex-col" style="width: 265px; background: var(--bg-panel); border-right: 1px solid var(--border-gold);">
+        <div class="px-4 py-2 text-xs font-semibold tracking-wider flex items-center justify-between"
+             style="color: var(--lol-enemy); border-bottom: 1px solid var(--border-gold);">
+          <span>TAB SCOREBOARD (ENEMY)</span>
+          <span class="text-[10px] font-normal" style="color: var(--text-light);">Click ⚡ to Ping</span>
+        </div>
+        <div id="scoreboard" class="flex-1 overflow-y-auto"></div>
+
+        <!-- Settings Toggles -->
+        <div class="px-4 py-2.5 space-y-1.5 text-xs" style="border-top: 1px solid var(--border-gold);">
+          <label class="flex items-center justify-between cursor-pointer" style="color: var(--text-light);"
+                 title="When enabled, your clipboard ONLY updates if you press Ctrl+C before Enter—just like in League of Legends!">
+            <span>Strict <span class="mono" style="color:var(--text-bright);">Ctrl+C</span> (Real LoL copy)</span>
+            <input id="strictCopyToggle" type="checkbox" class="accent-[#C89B3C] cursor-pointer" />
+          </label>
+          <label class="flex items-center justify-between cursor-pointer" style="color: var(--text-light);"
+                 title="Color-codes expired timers in red in the Clipboard preview bar so you can spot them while learning">
+            <span>Highlight expired in clipboard</span>
+            <input id="highlightExpiredToggle" type="checkbox" checked onchange="renderClipboardPreview()" class="accent-[#C89B3C] cursor-pointer" />
+          </label>
+          <label class="flex items-center justify-between cursor-pointer" style="color: var(--text-light);"
+                 title="Automatically gives your 4 teammates new Pro / EUW SoloQ names every time you click New Draft">
+            <span>Randomize names each draft</span>
+            <input id="randomNamesEachDraftToggle" type="checkbox" checked onchange="toggleRandomizeEachDraft(this.checked)" class="accent-[#C89B3C] cursor-pointer" />
+          </label>
+          <label class="flex items-center justify-between cursor-pointer" style="color: var(--text-light);">
+            <span>Chat clutter &amp; 2× pings</span>
+            <input id="clutterToggle" type="checkbox" checked class="accent-[#C89B3C] cursor-pointer" />
+          </label>
+        </div>
+
+        <!-- Pro List Cleanup Guide -->
+        <div class="px-4 py-3 space-y-2 text-xs" style="border-top: 1px solid var(--border-gold); background: rgba(1, 10, 19, 0.45);">
+          <div class="font-semibold flex items-center justify-between" style="color: var(--gold);">
+            <span>🧹 PRO CLEANUP WORKFLOW</span>
+          </div>
+          <div class="text-[11px] leading-relaxed space-y-1.5" style="color: var(--text-light);">
+            <div>
+              Append new timers at the <strong style="color: var(--text-bright);">end</strong>. Your list stays sorted <strong style="color: var(--text-bright);">oldest → newest</strong>, so expired timers are always at the <strong style="color: var(--warn);">very front</strong>.
+            </div>
+            <div class="p-2 rounded space-y-1" style="background: #060D17; border: 1px solid #162234;">
+              <div>1. <span class="key-cap">Enter</span> → <span class="key-cap">Ctrl+V</span></div>
+              <div>2. <span class="key-cap">Home</span> → <span class="key-cap">Ctrl+Shift+→</span> → <span class="key-cap">Bksp</span></div>
+              <div class="text-[10px]" style="color: #64748B;">(Or double-click the first timer with mouse)</div>
+              <div>3. <span class="key-cap">End</span> → type new → <span class="key-cap">Ctrl+A</span> <span class="key-cap">Ctrl+C</span></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER: Authentic In-Game Chat Feed OR 60s Math Sprint -->
+      <main class="flex-1 flex flex-col rift-backdrop relative">
+
+        <!-- Sub-banner: Spell Level Progression + Status -->
+        <div class="px-5 py-2 flex items-center justify-between gap-3 text-xs"
+             style="background: rgba(1, 10, 19, 0.78); border-bottom: 1px solid var(--border-gold);">
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--gold-dim);">Spells:</span>
+            <div class="flex items-center gap-1 p-0.5 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
+              <button id="lvl-1" onclick="setSpellLevel(1)" class="mode-btn active" style="padding: 3px 8px;" title="Level 1: Flash (5:00) & Teleport (5:00)">
+                Lvl 1: 5m (F / TP)
+              </button>
+              <button id="lvl-2" onclick="setSpellLevel(2)" class="mode-btn" style="padding: 3px 8px;" title="Level 2: Adds 4:00 spells (Ghost, Heal)">
+                Lvl 2: +4m (Gh / Heal)
+              </button>
+              <button id="lvl-3" onclick="setSpellLevel(3)" class="mode-btn" style="padding: 3px 8px;" title="Level 3: Adds 3:00 spells (Ignite, Barrier)">
+                Lvl 3: +3m (Ign / Bar)
+              </button>
+              <button id="lvl-4" onclick="setSpellLevel(4)" class="mode-btn" style="padding: 3px 8px;" title="Level 4: Adds 3:30 spells (Exhaust, Cleanse)">
+                Lvl 4: +3:30 (Exh / Cln)
+              </button>
+            </div>
+          </div>
+
+          <div id="modeDesc" class="truncate text-[11px]" style="color: var(--text-light);">
+            Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="syncClipBtn" onclick="syncClipboardToCanonical()" class="mono text-[11px] px-2 py-0.5 rounded hidden"
+                    style="background: rgba(20, 184, 166, 0.14); color: var(--teal); border: 1px solid rgba(20, 184, 166, 0.4); cursor: pointer;"
+                    title="Repair your clipboard to match all current active timers">
+              🔄 Sync Clipboard
+            </button>
+            <div id="pendingBadge" class="mono text-xs px-2 py-0.5 rounded hidden"
+                 style="background: rgba(217, 163, 54, 0.15); color: var(--lol-spell); border: 1px solid rgba(217, 163, 54, 0.35);">
+              1 unlogged spell
+            </div>
+          </div>
+        </div>
+
+        <!-- 60s Mental Math Sprint View (Hidden unless in 'math' mode) -->
+        <div id="mathSprintView" class="flex-1 flex flex-col items-center justify-center p-6 hidden">
+          <div class="w-full max-w-md p-6 rounded-xl text-center space-y-5"
+               style="background: rgba(9, 18, 32, 0.92); border: 1px solid var(--border-highlight); box-shadow: 0 12px 32px rgba(0,0,0,0.6);">
+            <div class="flex items-center justify-between text-xs uppercase tracking-wider" style="color: var(--text-light);">
+              <span>🧠 Mental Math Sprint</span>
+              <span class="mono" style="color: var(--gold);">Best: <strong id="mathBestScore">0</strong></span>
+            </div>
+
+            <div>
+              <div id="mathSpellLabel" class="text-xs mb-1 font-semibold" style="color: var(--flash-color);">⚡ Flash (+5:00) Pinged At</div>
+              <div id="mathPromptTime" class="mono text-5xl font-bold tracking-wider" style="color: var(--text-bright);">
+                --:--
+              </div>
+              <div id="mathLastFeedback" class="mono text-xs mt-2 h-4" style="color: var(--correct);"></div>
+            </div>
+
+            <div>
+              <input type="text" id="mathInput" maxlength="5"
+                     class="chat-input w-48 text-center py-2.5 px-4 rounded-lg mono text-2xl font-bold tracking-widest"
+                     placeholder="1935" autocomplete="off" spellcheck="false" />
+              <div class="text-[11px] mt-2" style="color: #526074;">
+                Type the 4-digit cooldown time (e.g. <span class="mono" style="color:var(--text-light);">14:35</span> → <span class="mono" style="color:var(--gold);">1935</span>) · Auto-submits!
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border-gold);">
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Score</div>
+                <div id="mathScore" class="mono text-xl font-bold" style="color: var(--correct);">0</div>
+              </div>
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Time Left</div>
+                <div id="mathTimeLeft" class="mono text-xl font-bold" style="color: var(--gold);">60s</div>
+              </div>
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Avg Reaction</div>
+                <div id="mathAvgMs" class="mono text-xl font-bold" style="color: var(--text-bright);">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- League In-Game Chat Stream -->
+        <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-end" id="chatFeedWrapper">
+          <div id="eventArea" class="lol-chat-feed space-y-0.5 overflow-y-auto max-h-full pr-2">
+            <!-- Welcome screen inside the chat area -->
+            <div id="welcome" class="my-auto py-6 text-center max-w-lg mx-auto" style="text-shadow: none;">
+              <div class="text-2xl mb-1.5 font-semibold" style="color: var(--gold);">⚡ Competitive Summoner Spell Trainer</div>
+              <div class="text-xs mb-4 leading-relaxed" style="color: var(--text-light);">
+                Starts at <span class="mono" style="color:var(--text-bright);">~05:30</span> with <strong style="color: var(--text-bright);">2 active timers pre-loaded on your clipboard</strong> so you immediately practice pasting, stripping expired timers from the front, and appending new ones at the end.
+              </div>
+
+              <!-- Example Walkthrough Card -->
+              <div class="p-3.5 rounded-lg text-left space-y-2 mb-4 text-xs"
+                   style="background: rgba(5, 10, 18, 0.9); border: 1px solid var(--border-gold);">
+                <div class="font-semibold flex items-center justify-between" style="color: var(--gold);">
+                  <span>3-PART CLIPBOARD AUDIT</span>
+                  <span class="mono text-[11px]" style="color: var(--text-light);">Oldest → Newest</span>
+                </div>
+                <div class="mono p-2.5 rounded text-[11.5px]" style="background: #03070C; border: 1px solid #142030;">
+                  <div style="color: #64748B;">// Clock jumps to <strong style="color:var(--text-bright);">06:35</strong> · Clipboard: <span style="color:var(--wrong); text-decoration:line-through;">615top</span> <span style="color:var(--correct);">750jg</span></div>
+                  <div class="mt-1">
+                    <span style="color: var(--lol-timestamp);">06:35</span>
+                    <span style="color: var(--lol-ally);">The Simple One (Karma):</span>
+                    <span style="color: var(--lol-enemy);">Yunara</span>
+                    <span style="color: var(--lol-spell);">used Flash</span>
+                  </div>
+                  <div class="mt-1 pt-1" style="border-top: 1px solid #142030;">
+                    <span style="color: var(--lol-timestamp);">06:38</span>
+                    <span style="color: var(--lol-ally);">V1dde (Jinx):</span>
+                    <span style="color: var(--text-bright);">750jg 1135ad</span>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5 pt-0.5">
+                  <span class="mono text-[11px] px-2 py-0.5 rounded" style="background: rgba(29,185,84,0.14); color: var(--correct); border: 1px solid rgba(29,185,84,0.35);">✅ +1135ad Safe (2.4s)</span>
+                  <span class="mono text-[11px] px-2 py-0.5 rounded" style="background: rgba(20,184,166,0.14); color: var(--teal); border: 1px solid rgba(20,184,166,0.35);">✓ Kept 750jg</span>
+                  <span class="mono text-[11px] px-2 py-0.5 rounded" style="background: rgba(200,155,60,0.16); color: var(--gold); border: 1px solid rgba(200,155,60,0.4);">🧹 Cleaned 615top</span>
+                </div>
+              </div>
+
+              <div class="text-xs" style="color: var(--text-light);">
+                Press <span class="key-cap">START</span> or <span class="key-cap">Space</span> to begin
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Chat Input Bar -->
+        <div id="chatContainer" style="background: #060C14; border-top: 1px solid var(--border-gold);">
+          <!-- Clipboard helper bar -->
+          <div class="px-5 py-1.5 flex items-center justify-between text-xs"
+               style="background: #04080E; border-bottom: 1px solid #101824;">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span style="color: var(--gold-dim); font-weight: 600;">📋 CLIPBOARD:</span>
+              <div id="clipboardPreview" class="mono flex items-center gap-1.5 truncate" style="color: var(--text-bright);">
+                <span style="color: #2A3444;">Empty</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0 ml-2">
+              <span id="copyHabitBadge" class="mono text-[11px] px-1.5 py-0.5 rounded hidden"
+                    style="background: rgba(29, 185, 84, 0.15); color: var(--correct); border: 1px solid rgba(29, 185, 84, 0.35);">
+                📋 Ctrl+C ✔
+              </span>
+              <span class="text-[11px]" style="color: #465264;">Ctrl+V to paste</span>
+            </div>
+          </div>
+
+          <!-- Input row (hidden until Enter) -->
+          <div id="chatRow" class="px-5 py-2.5 hidden">
+            <div class="flex items-center gap-2.5">
+              <!-- Live inline clock right next to chat input so eyes stay focused here! -->
+              <span id="inlineChatClock" class="mono text-xs px-2 py-1 rounded font-bold"
+                    style="background: #0D1726; border: 1px solid #1E2E46; color: var(--gold);"
+                    title="Current Game Time — any clipboard timer ≤ this time is expired!">
+                00:00
+              </span>
+              <span class="text-xs font-semibold" style="color: var(--lol-ally);">[Party]</span>
+              <input type="text" id="chatInput"
+                     class="chat-input flex-1 px-3 py-2 rounded mono"
+                     placeholder="Ctrl+V to paste list, remove expired, add new..."
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <!-- Hint bar -->
+          <div id="chatHint" class="text-center py-2 text-xs" style="color: #465264;">
+            Press <span class="key-cap">Enter</span> to open chat · <span class="key-cap">Space</span> for next event
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: Stats & Active Timers -->
+      <aside class="flex flex-col" style="width: 245px; background: var(--bg-panel); border-left: 1px solid var(--border-gold);">
+        <div class="px-4 py-2 text-xs font-semibold tracking-wider flex items-center justify-between"
+             style="color: var(--gold); border-bottom: 1px solid var(--border-gold);">
+          <span>LIST AUDIT STATS</span>
+          <span id="perfectCountBadge" class="mono text-[11px]" style="color: var(--correct);">0 Perfect</span>
+        </div>
+
+        <div class="px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-2.5"
+             style="border-bottom: 1px solid var(--border-gold);">
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">New Pings (Safe)</div>
+            <div class="stat-num text-lg font-bold" id="sCorrect" style="color: var(--correct);">0 <span class="text-xs font-normal" style="color:var(--wrong);">/ 0</span></div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">Avg Speed</div>
+            <div class="stat-num text-lg font-bold" id="sAvg" style="color: var(--text-bright);">—</div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">🧹 Cleaned Old</div>
+            <div class="stat-num text-lg font-bold" id="sCleaned" style="color: var(--gold);">0 <span class="text-xs font-normal" style="color:var(--wrong);">/ 0</span></div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">✓ Kept Active</div>
+            <div class="stat-num text-lg font-bold" id="sKept" style="color: var(--teal);">0 <span class="text-xs font-normal" style="color:var(--wrong);">/ 0</span></div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">List Streak</div>
+            <div class="stat-num text-lg font-bold" id="sStreak" style="color: var(--gold);">0 <span class="text-xs font-normal" style="color:var(--gold-dim);">(0)</span></div>
+          </div>
+          <div>
+            <div class="text-[11px]" style="color: var(--text-light);">Ctrl+C Habit</div>
+            <div class="stat-num text-lg font-bold" id="sCopyHabit" style="color: var(--text-bright);">—</div>
+          </div>
+        </div>
+
+        <!-- Active Timers -->
+        <div class="px-4 py-3 flex-1 overflow-y-auto">
+          <div class="text-xs font-semibold tracking-wider mb-2 flex items-center justify-between" style="color: var(--gold);">
+            <span>TRUE ACTIVE TIMERS</span>
+            <span id="activeCount" class="mono text-[11px]" style="color: var(--text-light);">0</span>
+          </div>
+          <div id="activeTimers" class="space-y-2.5">
+            <div class="text-xs" style="color: #2A3040;">None tracked</div>
+          </div>
+        </div>
+
+        <!-- Recent -->
+        <div class="px-4 py-3 overflow-y-auto" style="max-height: 185px; border-top: 1px solid var(--border-gold);">
+          <div class="text-xs font-semibold tracking-wider mb-2" style="color: var(--gold);">RECENT AUDITS</div>
+          <div id="recent" class="space-y-1"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ========== TEAM ROSTER & PREFERENCES MODAL ========== -->
+    <div id="rosterModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+         style="background: rgba(1, 8, 16, 0.82);">
+      <div class="w-full max-w-lg rounded-lg p-5 space-y-4"
+           style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.75);">
+        <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
+          <span class="text-sm font-bold" style="color: var(--gold);">⚙️ Team Roster, Role &amp; Name Library</span>
+          <button onclick="toggleRosterModal()" class="text-xs px-2 py-0.5 rounded" style="color: var(--text-light); cursor: pointer;">✕</button>
+        </div>
+
+        <!-- Quick Player Identity Switcher (e.g. V1dde vs Nobo) -->
+        <div class="space-y-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold" style="color: var(--text-bright);">Quick Player Setup (Sets Who "You" Are)</span>
+            <span class="text-[11px]" style="color: var(--text-light);">Or click "(You)" on any role below</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="applyQuickPlayer('mid', 'V1dde')" class="px-2.5 py-1 rounded text-xs font-semibold"
+                    style="background:#131F33; border:1px solid #2A3C58; color:var(--text-bright); cursor:pointer;">
+              👤 V1dde (Mid)
+            </button>
+            <button onclick="applyQuickPlayer('sup', 'Nobo')" class="px-2.5 py-1 rounded text-xs font-semibold"
+                    style="background:#131F33; border:1px solid #2A3C58; color:var(--text-bright); cursor:pointer;">
+              👤 Nobo (Sup)
+            </button>
+            <button onclick="applyQuickPlayer('ad', 'Kalle')" class="px-2.5 py-1 rounded text-xs font-semibold"
+                    style="background:#131F33; border:1px solid #2A3C58; color:var(--text-bright); cursor:pointer;">
+              👤 Kalle (ADC)
+            </button>
+            <button onclick="applyQuickPlayer('jg', 'Don')" class="px-2.5 py-1 rounded text-xs font-semibold"
+                    style="background:#131F33; border:1px solid #2A3C58; color:var(--text-bright); cursor:pointer;">
+              👤 Don (Jng)
+            </button>
+            <button onclick="applyQuickPlayer('top', 'Krasito')" class="px-2.5 py-1 rounded text-xs font-semibold"
+                    style="background:#131F33; border:1px solid #2A3C58; color:var(--text-bright); cursor:pointer;">
+              👤 Krasito (Top)
+            </button>
+          </div>
+        </div>
+
+        <!-- Ally Roster Inputs + Selectable "You" Role + Randomize Buttons -->
+        <div class="space-y-2.5 text-xs pt-2" style="border-top: 1px solid var(--border-gold);">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold" style="color: var(--text-bright);">Ally Team Names &amp; Your Role</span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="loadGardenGamingPreset()" class="px-2.5 py-1 rounded text-[11px] font-semibold"
+                      style="background: rgba(29, 185, 84, 0.14); border: 1px solid rgba(29, 185, 84, 0.4); color: var(--correct); cursor: pointer;"
+                      title="Load Garden Gaming Summer roster (Krasito, Don, V1dde, Kalle, Nobozif)">
+                🌱 Garden Gaming (Summer)
+              </button>
+              <button onclick="randomizeModalTeammates()" class="px-2.5 py-1 rounded text-[11px] font-semibold"
+                      style="background: rgba(200, 155, 60, 0.16); border: 1px solid var(--border-highlight); color: var(--gold); cursor: pointer;"
+                      title="Roll random names from the 125+ LoLPros / EUW High-Elo / ERL library (keeps your own name)">
+                🎲 Randomize Teammates
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2" id="rosterInputs"></div>
+        </div>
+
+        <div class="space-y-2 text-xs pt-2" style="border-top: 1px solid var(--border-gold);">
+          <div class="font-semibold" style="color: var(--text-bright);">Display Format Style (Both Always Accepted when Typing)</div>
+          <select id="formatStyleSelect" class="w-full px-3 py-1.5 rounded text-xs mono"
+                  style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-bright); outline: none;">
+            <option value="timeFirst">Time → Role (e.g. 2025top 2110jg)</option>
+            <option value="roleFirst">Role → Time (e.g. top2025 jg2110)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-2" style="border-top: 1px solid var(--border-gold);">
+          <span class="text-[11px]" style="color: var(--text-light);">Library: 125+ LoLPros, NLC/DK Ligaen, LEC &amp; EUW SoloQ tags</span>
+          <button onclick="saveRosterPreferences()" class="px-4 py-1.5 rounded text-xs font-semibold"
+                  style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
+            Save &amp; Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===================== CONFIG & SVG ROLE ICONS =====================
+const FLASH_CD = 300; // 5:00 in seconds
+
+const ROLE_SVGS = {
+  top: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20V4h16"/><path d="M9 15h6V9"/></svg>`,
+  jg:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3c-4 4-6 8-6 12a6 6 0 0 0 12 0c0-4-2-8-6-12Z"/><path d="M12 10v8"/></svg>`,
+  mid: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20L20 4"/><path d="M4 11V4h7"/><path d="M20 13v7h-7"/></svg>`,
+  ad:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 4v16H4"/><path d="M15 9H9v6"/></svg>`,
+  sup: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l8 4v5c0 5.25-3.4 9.74-8 11-4.6-1.26-8-5.75-8-11V7l8-4z"/></svg>`,
+};
+
+const ROLES = [
+  { id:'top', keys:['top','t'],                   tag:'TOP', label:'Top',     c:'#A78BFA' },
+  { id:'jg',  keys:['jg','jng','jungle','j'],     tag:'JNG', label:'Jungle',  c:'#34D399' },
+  { id:'mid', keys:['mid','m'],                   tag:'MID', label:'Mid',     c:'#F87171' },
+  { id:'ad',  keys:['ad','adc','bot','b'],        tag:'ADC', label:'Bot',     c:'#60A5FA' },
+  { id:'sup', keys:['sup','supp','support','s'],  tag:'SUP', label:'Support', c:'#22D3EE' },
+];
+
+// Summoner Spell Catalog organized by Progressive Levels:
+//   Level 1: 5:00 CDs (Flash, Teleport)
+//   Level 2: +4:00 CDs (Ghost, Heal)
+//   Level 3: +3:00 CDs (Ignite, Barrier)
+//   Level 4: +3:30 CDs (Exhaust, Cleanse)
+const SPELLS = {
+  flash:   { id:'flash',   name:'Flash',    short:'',    cd:300, level:1, aliases:['f','fl','flash'],          icon:'⚡', color:'#F5D042', bg:'linear-gradient(135deg, #F5D042 0%, #C88A1E 100%)', textDark:true },
+  tp:      { id:'tp',      name:'Teleport', short:'tp',  cd:300, level:1, aliases:['tp','teleport','tele'],    icon:'🌀', color:'#C084FC', bg:'linear-gradient(135deg, #A855F7 0%, #6B21A8 100%)', textDark:false },
+  ghost:   { id:'ghost',   name:'Ghost',    short:'gh',  cd:240, level:2, aliases:['g','gh','ghost'],          icon:'👻', color:'#38BDF8', bg:'linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)', textDark:true },
+  heal:    { id:'heal',    name:'Heal',     short:'h',   cd:240, level:2, aliases:['h','heal'],                icon:'💚', color:'#4ADE80', bg:'linear-gradient(135deg, #4ADE80 0%, #16A34A 100%)', textDark:true },
+  ignite:  { id:'ignite',  name:'Ignite',   short:'ign', cd:180, level:3, aliases:['i','ig','ign','ignite'],   icon:'🔥', color:'#FB923C', bg:'linear-gradient(135deg, #FB923C 0%, #EA580C 100%)', textDark:true },
+  barrier: { id:'barrier', name:'Barrier',  short:'bar', cd:180, level:3, aliases:['ba','bar','barrier'],      icon:'🛡️', color:'#FACC15', bg:'linear-gradient(135deg, #FACC15 0%, #CA8A04 100%)', textDark:true },
+  exhaust: { id:'exhaust', name:'Exhaust',  short:'exh', cd:210, level:4, aliases:['ex','exh','exhaust'],      icon:'⏳', color:'#FBBF24', bg:'linear-gradient(135deg, #FBBF24 0%, #B45309 100%)', textDark:true },
+  cleanse: { id:'cleanse', name:'Cleanse',  short:'cln', cd:210, level:4, aliases:['c','cl','cln','cleanse'],  icon:'✨', color:'#67E8F9', bg:'linear-gradient(135deg, #67E8F9 0%, #0891B2 100%)', textDark:true },
+};
+
+const SPELL_ALIAS_MAP = {};
+Object.values(SPELLS).forEach(sp => {
+  sp.aliases.forEach(a => { SPELL_ALIAS_MAP[a] = sp.id; });
+});
+
+const ROLE_SECONDARY_POOLS = {
+  top: ['tp', 'ghost', 'ignite'],
+  jg:  ['ghost', 'ignite'],
+  mid: ['tp', 'ignite', 'ghost', 'barrier', 'cleanse'],
+  ad:  ['heal', 'barrier', 'cleanse', 'ghost', 'exhaust'],
+  sup: ['exhaust', 'ignite', 'heal'],
+};
+
+const CHAMPS = {
+  top:['Tryndamere','Ornn','Darius','Fiora','Camille','Jax','Riven','Aatrox','Renekton','Gwen','KSante'],
+  jg: ['Xin Zhao','Nunu & Willump','Lee Sin','Vi','Elise','Rek\'Sai','Jarvan IV','Viego','Graves','Nidalee','Sejuani'],
+  mid:['Ahri','Syndra','Orianna','Zed','LeBlanc','Viktor','Azir','Akali','Corki','Lissandra','Taliyah','Yone'],
+  ad: ['Yunara','Kai\'Sa','Jinx','Ezreal','Caitlyn','Jhin','Aphelios','Varus','Xayah','Ashe','Lucian'],
+  sup:['Karma','Thresh','Nautilus','Leona','Lulu','Braum','Rakan','Alistar','Nami','Rell','Bard'],
+};
+
+// 125+ Real Gamer Tags from LoLPros, Leaguepedia (NLC / DK Ligaen / ERL / LEC / LCK), and EUW High-Elo SoloQ
+const PRO_NAME_LIBRARY = {
+  top: [
+    'Krasito', 'The Mountain', 'Lollipoq', 'Bausffs', 'BrokenBlade', 'Wunder', 'Irrelevant',
+    'Oscarinin', 'Photon', 'Myrwn', 'Canna', 'Adam', 'Cabochard', 'Ragner', 'Szygenda',
+    'Kryze', 'Finn', 'Odoamne', 'Vizicsacsi', 'Drututt', 'AgurinTop', 'Naayil', 'Dzukill',
+    'Zeus', 'Kiin', 'Bin', '369', 'Nille', 'kerberos'
+  ],
+  jg: [
+    'Thorden', 'Don', 'Prodigy', 'Yike', 'Razork', 'Elyoya', 'Jankos', 'Sheo', 'Isma',
+    'Bo', 'Malrang', 'Peach', 'Lyncas', 'Closer', 'Daglas', 'Selfmade', 'Santorin',
+    'Broxah', 'Agurin', 'Velja', 'NattyNatt', 'Maxi', 'SkewMond', 'Oner', 'Canyon',
+    'Peanut', 'Kanavi', 'Tarzan'
+  ],
+  mid: [
+    'V1dde', 'Caps', 'Humanoid', 'Larssen', 'Nisqy', 'Jackies', 'Vladi', 'ucal',
+    'Fresskowy', 'nuc', 'Vetheo', 'Perkz', 'Nemesis', 'Noway4u', 'Sertuss', 'Czajek',
+    'Zwyroo', 'Reeker', 'LIDER', 'Magifelix', 'Faker', 'Chovy', 'ShowMaker', 'Zeka',
+    'Bdd', 'Knight', 'Scout', 'Backlund'
+  ],
+  ad: [
+    'Kalle', 'Hans sama', 'Noah', 'Ice', 'Carzzy', 'Supa', 'Patrik', 'Upset', 'Flakked',
+    'Comp', 'Exakick', 'Crownie', 'Kobbe', 'Jackspektra', 'Caliste', 'Keduii', 'Bean',
+    'neon', 'Reptile', 'Ruler', 'Gumayusi', 'Viper', 'Peyz', 'Aiming', 'Elk', 'JackeyLove'
+  ],
+  sup: [
+    'Nobo', 'Nobozif', 'The Simple One', 'Grisen', 'Mikyx', 'Jun', 'Alvaro', 'Hylissang',
+    'Labrov', 'Targamas', 'Trymbi', 'Kaiser', 'Ignar', 'Zoelys', 'LIMIT', 'Rekkles',
+    'Treatz', 'Tore', 'Stend', 'Kamilius', 'Keria', 'Delight', 'Lehends', 'BeryL', 'ON', 'Meiko'
+  ],
+};
+
+// Default to Garden Gaming Summer roster with V1dde as player (can be switched to Nobozif or any role in ⚙️ Team)
+let allyRoster = [
+  { name: 'Krasito', roleId: 'top', isPlayer: false },
+  { name: 'Don',     roleId: 'jg',  isPlayer: false },
+  { name: 'V1dde',   roleId: 'mid', isPlayer: true  },
+  { name: 'Kalle',   roleId: 'ad',  isPlayer: false },
+  { name: 'Nobozif', roleId: 'sup', isPlayer: false },
+];
+
+let formatStyle = 'timeFirst'; // 'timeFirst' (2025top) | 'roleFirst' (top2025)
+let randomizeNamesEachDraft = true;
+let spellLevel = 1; // 1: 5m (F/TP) | 2: +4m (Gh/Heal) | 3: +3m (Ign/Bar) | 4: +3:30 (Exh/Cln)
+
+const FIGHT_SCENARIOS = [
+  { name: 'Bot 2v2 Skirmish',        roles: ['ad', 'sup'] },
+  { name: 'Mid / Jungle 2v2',        roles: ['mid', 'jg'] },
+  { name: 'Top / Jungle Dive',       roles: ['top', 'jg'] },
+  { name: 'Bot Gank 3v3',            roles: ['jg', 'ad', 'sup'] },
+  { name: 'Voidgrubs Skirmish',      roles: ['top', 'jg', 'mid'] },
+  { name: 'Dragon Contest',          roles: ['jg', 'mid', 'ad', 'sup'] },
+  { name: 'River Skirmish',          roles: ['mid', 'jg', 'sup'] },
+  { name: 'Baron / Objective Fight', roles: ['top', 'jg', 'mid', 'ad'] },
+];
+
+// ===================== PERSISTENCE (localStorage) =====================
+function loadSavedSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('sumTrainerSettingsV6') || '{}');
+    if (Array.isArray(saved.allyRoster) && saved.allyRoster.length === 5) {
+      allyRoster = saved.allyRoster;
+    }
+    if (saved.formatStyle) formatStyle = saved.formatStyle;
+    if (typeof saved.spellLevel === 'number' && saved.spellLevel >= 1 && saved.spellLevel <= 4) {
+      spellLevel = saved.spellLevel;
+    }
+    if (typeof saved.randomizeNamesEachDraft === 'boolean') {
+      randomizeNamesEachDraft = saved.randomizeNamesEachDraft;
+      const tog = document.getElementById('randomNamesEachDraftToggle');
+      if (tog) tog.checked = randomizeNamesEachDraft;
+    }
+    if (typeof saved.earlyToleranceSec === 'number') {
+      earlyToleranceSec = saved.earlyToleranceSec;
+      const sel = document.getElementById('toleranceSelect');
+      if (sel) sel.value = String(earlyToleranceSec);
+    }
+    if (typeof saved.bestStreak === 'number') bestStreakAllTime = saved.bestStreak;
+    if (typeof saved.mathBest === 'number') mathBestAllTime = saved.mathBest;
+  } catch (e) {}
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem('sumTrainerSettingsV6', JSON.stringify({
+      allyRoster,
+      formatStyle,
+      spellLevel,
+      randomizeNamesEachDraft,
+      earlyToleranceSec,
+      bestStreak: bestStreakAllTime,
+      mathBest: mathBestAllTime,
+    }));
+  } catch (e) {}
+}
+
+function toggleRandomizeEachDraft(checked) {
+  randomizeNamesEachDraft = !!checked;
+  saveSettings();
+}
+
+// Rolls random role-appropriate gamer tags for the 4 non-player teammates
+function rollRandomTeammateNames() {
+  const used = new Set(allyRoster.filter(a => a.isPlayer).map(a => a.name));
+  allyRoster.forEach(ap => {
+    if (ap.isPlayer) return;
+    const pool = (PRO_NAME_LIBRARY[ap.roleId] || []).filter(n => !used.has(n));
+    if (pool.length > 0) {
+      const chosen = pick(pool);
+      ap.name = chosen;
+      used.add(chosen);
+    }
+  });
+}
+
+// ===================== STATE =====================
+let currentMode = 'instant'; // 'instant' | 'burst' | 'rapid' | 'math'
+let earlyToleranceSec = 10;
+let bestStreakAllTime = 0;
+let mathBestAllTime = 0;
+let savedClipboard = '';
+let pressedCtrlCThisTurn = false;
+
+// Math sprint state
+let M = {
+  on: false,
+  timeLeft: 60,
+  iv: null,
+  promptSec: 0,
+  targetSec: 0,
+  askedAtMs: 0,
+  score: 0,
+  reactions: [],
+};
+
+loadSavedSettings();
+let G = createInitialState(false);
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function formatTimerToken(timeSec, roleId, spellId = 'flash') {
+  const sp = SPELLS[spellId] || SPELLS.flash;
+  const suffix = sp.short ? sp.short : '';
+  return formatStyle === 'roleFirst'
+    ? `${roleId}${suffix}${fmtCompact(timeSec)}`
+    : `${fmtCompact(timeSec)}${roleId}${suffix}`;
+}
+
+function getSecondarySpellForRole(roleId, level) {
+  const pool = (ROLE_SECONDARY_POOLS[roleId] || []).filter(id => SPELLS[id].level <= level);
+  if (pool.length === 0) return null;
+  // At higher levels, still keep a realistic mix (prioritize role's signature spells)
+  return pick(pool);
+}
+
+function createInitialState(isNewDraft = true) {
+  if (isNewDraft && randomizeNamesEachDraft) {
+    rollRandomTeammateNames();
+    saveSettings();
+  }
+
+  const usedNames = new Set(allyRoster.map(a => a.name));
+
+  const enemies = ROLES.map(r => {
+    const namePool = (PRO_NAME_LIBRARY[r.id] || []).filter(n => !usedNames.has(n));
+    const chosenEnemyName = namePool.length > 0 ? pick(namePool) : 'Enemy';
+    usedNames.add(chosenEnemyName);
+
+    const secId = getSecondarySpellForRole(r.id, spellLevel);
+    const spells = {
+      flash: { id: 'flash', up: true, backAt: 0 },
+    };
+    if (secId) {
+      spells[secId] = { id: secId, up: true, backAt: 0 };
+    }
+
+    return {
+      role: r,
+      champ: pick(CHAMPS[r.id]),
+      gamerTag: chosenEnemyName,
+      spells,
+      secondaryId: secId,
+    };
+  });
+
+  const allies = allyRoster.map(ap => {
+    const enemyChamp = enemies.find(e => e.role.id === ap.roleId)?.champ;
+    const pool = CHAMPS[ap.roleId].filter(c => c !== enemyChamp);
+    return {
+      name: ap.name,
+      roleId: ap.roleId,
+      champ: pick(pool),
+      isPlayer: !!ap.isPlayer,
+    };
+  });
+
+  return {
+    on: false,
+    t: 0,
+    iv: null,
+    jumpTimeouts: [],
+    enemies,
+    allies,
+    pings: [],               // { id, enemyIdx, role, champ, allyName, allyChamp, usedAt, correctTime, answeredAt, correct, realMs }
+    pingId: 0,
+    burstSpawning: false,
+    stats: {
+      ok: 0,
+      wrong: 0,
+      cleanedOk: 0,
+      expiredLeftIn: 0,
+      keptOk: 0,
+      droppedActive: 0,
+      perfectLists: 0,
+      streak: 0,
+      best: bestStreakAllTime,
+      times: [],
+      msgsSent: 0,
+      msgsWithCtrlC: 0,
+    },
+    chatOpen: false,
+    activeTimers: [],        // { role, champ, expiresAt, playerTime, droppedOnce }
+    allTimersHistory: [],    // { role, champ, expiresAt, playerTime, cleanedByPlayer }
+  };
+}
+
+function updateTolerance(val) {
+  earlyToleranceSec = parseInt(val, 10);
+  saveSettings();
+}
+
+function clearScheduledTimeouts() {
+  G.jumpTimeouts.forEach(id => clearTimeout(id));
+  G.jumpTimeouts = [];
+  G.burstSpawning = false;
+}
+
+// ===================== SPELL LEVEL & MODE SWITCHING =====================
+function setSpellLevel(lvl) {
+  spellLevel = lvl;
+  saveSettings();
+  [1, 2, 3, 4].forEach(n => {
+    const btn = document.getElementById('lvl-' + n);
+    if (btn) btn.classList.toggle('active', n === lvl);
+  });
+
+  // Update each enemy's secondary spell slot to match the newly selected level
+  G.enemies.forEach(e => {
+    const secId = getSecondarySpellForRole(e.role.id, spellLevel);
+    const prevFlash = e.spells.flash || { id: 'flash', up: true, backAt: 0 };
+    e.spells = { flash: prevFlash };
+    e.secondaryId = secId;
+    if (secId) {
+      e.spells[secId] = { id: secId, up: true, backAt: 0 };
+    }
+  });
+  renderBoard();
+
+  if (currentMode === 'math' && M.on) {
+    nextMathPrompt();
+  }
+}
+
+function setMode(mode) {
+  if (currentMode === 'math' && mode !== 'math') {
+    stopMathSprint();
+  }
+  currentMode = mode;
+  ['instant', 'burst', 'rapid', 'math'].forEach(m => {
+    const btn = document.getElementById('mode-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+
+  const isMath = mode === 'math';
+  document.getElementById('mathSprintView').classList.toggle('hidden', !isMath);
+  document.getElementById('chatFeedWrapper').classList.toggle('hidden', isMath);
+  document.getElementById('chatContainer').classList.toggle('hidden', isMath);
+
+  if (isMath) {
+    pause();
+    document.getElementById('modeDesc').innerHTML =
+      `🧠 <strong style="color: var(--gold);">Math Sprint:</strong> Add the spell's cooldown for your active Spell Level. Auto-submits on 4 digits!`;
+    document.getElementById('mathBestScore').textContent = mathBestAllTime;
+    startMathSprint();
+    return;
+  }
+
+  document.getElementById('modeDesc').innerHTML = mode === 'rapid'
+    ? `🎯 <strong style="color: var(--gold);">Rapid Solo:</strong> Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)`
+    : `Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)`;
+
+  if (G.on) {
+    clearScheduledTimeouts();
+    G.pings.forEach(p => {
+      if (p.answeredAt === null) {
+        p.answeredAt = G.t;
+        markPingLineResolved(p.id);
+      }
+    });
+    if (mode === 'rapid') {
+      G.activeTimers = [];
+      G.enemies.forEach(e => {
+        Object.values(e.spells).forEach(sp => { sp.up = true; sp.backAt = 0; });
+      });
+      setClipboardString('');
+    } else if (G.activeTimers.length === 0) {
+      seedStartingClipboard();
+    }
+    triggerNextEvent(true);
+  }
+}
+
+// ===================== 60s MENTAL MATH SPRINT =====================
+function startMathSprint() {
+  stopMathSprint();
+  M.on = true;
+  M.timeLeft = 60;
+  M.score = 0;
+  M.reactions = [];
+  document.getElementById('btnStart').textContent = 'RESTART';
+  document.getElementById('mathScore').textContent = '0';
+  document.getElementById('mathTimeLeft').textContent = '60s';
+  document.getElementById('mathAvgMs').textContent = '—';
+  document.getElementById('mathLastFeedback').textContent = '';
+  document.getElementById('mathBestScore').textContent = mathBestAllTime;
+
+  const inp = document.getElementById('mathInput');
+  inp.disabled = false;
+  inp.value = '';
+  inp.focus();
+
+  nextMathPrompt();
+
+  M.iv = setInterval(() => {
+    M.timeLeft--;
+    document.getElementById('mathTimeLeft').textContent = M.timeLeft + 's';
+    document.getElementById('clock').textContent = fmtChat(M.timeLeft);
+    if (M.timeLeft <= 0) {
+      finishMathSprint();
+    }
+  }, 1000);
+}
+
+function stopMathSprint() {
+  M.on = false;
+  clearInterval(M.iv);
+}
+
+function finishMathSprint() {
+  stopMathSprint();
+  const inp = document.getElementById('mathInput');
+  inp.disabled = true;
+  document.getElementById('mathPromptTime').textContent = 'DONE!';
+  if (M.score > mathBestAllTime) {
+    mathBestAllTime = M.score;
+    saveSettings();
+    document.getElementById('mathBestScore').textContent = mathBestAllTime;
+    document.getElementById('mathLastFeedback').innerHTML = `<span style="color:var(--gold);">🏆 NEW PERSONAL BEST: ${M.score} reps!</span>`;
+  } else {
+    document.getElementById('mathLastFeedback').innerHTML = `<span style="color:var(--text-light);">Finished! Press START or Space to run again.</span>`;
+  }
+}
+
+function nextMathPrompt() {
+  const unlocked = Object.values(SPELLS).filter(sp => sp.level <= spellLevel);
+  const sp = pick(unlocked);
+  const min = 1 + Math.floor(Math.random() * 32);
+  const sec = Math.floor(Math.random() * 12) * 5;
+  M.promptSec = min * 60 + sec;
+  M.spell = sp;
+  M.targetSec = M.promptSec + sp.cd;
+  M.askedAtMs = Date.now();
+  document.getElementById('mathPromptTime').textContent = fmtChat(M.promptSec);
+  const lbl = document.getElementById('mathSpellLabel');
+  if (lbl) {
+    lbl.style.color = sp.color;
+    lbl.textContent = `${sp.icon} ${sp.name} (+${fmt(sp.cd)}) Pinged At`;
+  }
+}
+
+document.getElementById('mathInput').addEventListener('input', e => {
+  if (!M.on) return;
+  const val = e.target.value.trim();
+  const expectedCompact = fmtCompact(M.targetSec);
+
+  if (val.length >= expectedCompact.length) {
+    const parsed = parseTime(val);
+    const elapsedSec = ((Date.now() - M.askedAtMs) / 1000).toFixed(2);
+    const fb = document.getElementById('mathLastFeedback');
+
+    if (parsed !== null && Math.abs(parsed - M.targetSec) <= earlyToleranceSec && parsed <= M.targetSec) {
+      M.score++;
+      M.reactions.push(parseFloat(elapsedSec));
+      document.getElementById('mathScore').textContent = M.score;
+      const avg = (M.reactions.reduce((a, b) => a + b, 0) / M.reactions.length).toFixed(2);
+      document.getElementById('mathAvgMs').textContent = avg + 's';
+      fb.style.color = 'var(--correct)';
+      fb.textContent = `✅ ${expectedCompact} (${elapsedSec}s)`;
+      e.target.value = '';
+      nextMathPrompt();
+    } else {
+      const cdStr = M.spell ? fmt(M.spell.cd) : '5:00';
+      fb.style.color = 'var(--wrong)';
+      fb.textContent = `❌ ${fmtChat(M.promptSec)} + ${cdStr} = ${expectedCompact}`;
+      e.target.value = '';
+    }
+  }
+});
+
+// ===================== TIME HELPERS =====================
+function fmtChat(s) {
+  const m = Math.floor(s / 60);
+  return String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  return m + ':' + String(s % 60).padStart(2, '0');
+}
+function fmtCompact(s) {
+  return Math.floor(s / 60) + '' + String(s % 60).padStart(2, '0');
+}
+
+function parseTime(str) {
+  str = str.trim();
+  if (!str) return null;
+  let m, s;
+  if (str.includes(':')) {
+    const p = str.split(':');
+    m = parseInt(p[0], 10); s = parseInt(p[1], 10);
+  } else {
+    if (str.length <= 2) { m = parseInt(str, 10); s = 0; }
+    else { s = parseInt(str.slice(-2), 10); m = parseInt(str.slice(0, -2), 10); }
+  }
+  if (isNaN(m) || isNaN(s) || s < 0 || s > 59 || m < 0) return null;
+  return m * 60 + s;
+}
+
+// ===================== PARSER (HANDLES ALL ROLES, SPELLS, ORDERS & GLUED TOKENS) =====================
+// Supports:
+//   Flash (default): "620top", "top620", "620 top", "top 620", "620topf"
+//   Non-Flash:       "2200toptp", "2200tptop", "2200 top tp", "toptp 2200", "1830adh", "1715supexh"
+const ALL_ROLE_KEYS = ROLES.flatMap(r => r.keys).sort((a, b) => b.length - a.length);
+const ALL_SPELL_KEYS = Object.keys(SPELL_ALIAS_MAP).sort((a, b) => b.length - a.length);
+const ATOM_REGEX = new RegExp(
+  `(\\d{1,2}:\\d{2}|\\d{3,4})|(${ALL_ROLE_KEYS.join('|')})|(${ALL_SPELL_KEYS.join('|')})`,
+  'g'
+);
+
+function parseMessage(raw) {
+  const text = raw.toLowerCase().trim();
+  if (!text) return [];
+
+  // Extract ordered atoms: { type: 'time' | 'role' | 'spell', ... }
+  const atoms = [];
+  let m;
+  ATOM_REGEX.lastIndex = 0;
+  while ((m = ATOM_REGEX.exec(text)) !== null) {
+    if (m[1]) {
+      const t = parseTime(m[1]);
+      if (t !== null) atoms.push({ type: 'time', val: t });
+    } else if (m[2]) {
+      const role = ROLES.find(r => r.keys.includes(m[2]));
+      if (role) atoms.push({ type: 'role', val: role });
+    } else if (m[3]) {
+      const spId = SPELL_ALIAS_MAP[m[3]];
+      if (spId) atoms.push({ type: 'spell', val: spId });
+    }
+  }
+
+  // Group atoms into { role, spell, time } entries
+  const results = [];
+  let cur = { role: null, spell: null, time: null };
+
+  const flush = () => {
+    if (cur.role && cur.time !== null) {
+      results.push({ role: cur.role, spell: cur.spell || 'flash', time: cur.time });
+    }
+    cur = { role: null, spell: null, time: null };
+  };
+
+  for (const atom of atoms) {
+    if (atom.type === 'time') {
+      if (cur.time !== null) flush();
+      cur.time = atom.val;
+    } else if (atom.type === 'role') {
+      if (cur.role !== null) flush();
+      cur.role = atom.val;
+    } else if (atom.type === 'spell') {
+      if (cur.spell !== null) flush();
+      cur.spell = atom.val;
+    }
+    if (cur.role && cur.time !== null && cur.spell !== null) {
+      flush();
+    }
+  }
+  flush();
+
+  return results;
+}
+
+// ===================== PRE-SEEDING STARTING CLIPBOARD =====================
+function seedStartingClipboard() {
+  const startSec = 325 + Math.floor(Math.random() * 25); // ~05:25 to 05:50
+  G.t = startSec;
+  updateClockDisplay();
+
+  const shuffled = [...G.enemies].sort(() => Math.random() - 0.5);
+  const e1 = shuffled[0];
+  const e2 = shuffled[1];
+
+  const exp1 = Math.floor((G.t + 35 + Math.floor(Math.random() * 15)) / 5) * 5;
+  const exp2 = Math.floor((G.t + 135 + Math.floor(Math.random() * 35)) / 5) * 5;
+
+  e1.spells.flash.up = false; e1.spells.flash.backAt = exp1;
+  e2.spells.flash.up = false; e2.spells.flash.backAt = exp2;
+
+  const t1 = { role: e1.role, champ: e1.champ, expiresAt: exp1, playerTime: exp1, droppedOnce: false };
+  const t2 = { role: e2.role, champ: e2.champ, expiresAt: exp2, playerTime: exp2, droppedOnce: false };
+
+  G.activeTimers = [t1, t2];
+  G.allTimersHistory = [
+    { ...t1, cleanedByPlayer: false },
+    { ...t2, cleanedByPlayer: false },
+  ];
+
+  const seedStr = `${formatTimerToken(exp1, e1.role.id)} ${formatTimerToken(exp2, e2.role.id)}`;
+  setClipboardString(seedStr);
+
+  const area = document.getElementById('eventArea');
+  const note = document.createElement('div');
+  note.className = 'my-2 py-1.5 px-3 rounded text-xs mono';
+  note.style.cssText = 'background: rgba(200, 155, 60, 0.08); border: 1px solid rgba(200, 155, 60, 0.25); color: var(--text-light); text-shadow: none;';
+  note.innerHTML = `📋 Pre-loaded clipboard with 2 active timers: <strong style="color:var(--text-bright);">${seedStr}</strong> — press <span class="key-cap">Enter</span> then <span class="key-cap">Ctrl+V</span> when the next Flash is pinged!`;
+  area.appendChild(note);
+
+  renderBoard();
+  renderTimers();
+}
+
+// ===================== GAME LOOP =====================
+function toggleGame() {
+  if (currentMode === 'math') {
+    startMathSprint();
+    return;
+  }
+  G.on ? pause() : start();
+}
+
+function start() {
+  if (G.on) return;
+  G.on = true;
+  document.getElementById('btnStart').textContent = 'PAUSE';
+  document.getElementById('btnStart').style.background = '#785A28';
+  document.getElementById('btnNext').classList.remove('hidden');
+
+  const w = document.getElementById('welcome');
+  if (w) w.style.display = 'none';
+
+  if (G.t === 0) {
+    if (currentMode === 'rapid') {
+      triggerNextEvent(false);
+    } else {
+      seedStartingClipboard();
+      triggerNextEvent(false);
+    }
+  } else {
+    const hasPending = G.pings.some(p => p.answeredAt === null);
+    if (!hasPending && !G.burstSpawning) {
+      triggerNextEvent(true);
+    }
+  }
+
+  G.iv = setInterval(tick, 1000);
+}
+
+function pause() {
+  G.on = false;
+  clearInterval(G.iv);
+  clearScheduledTimeouts();
+  document.getElementById('btnStart').textContent = 'START';
+  document.getElementById('btnStart').style.background = 'var(--gold)';
+}
+
+function resetGame() {
+  if (currentMode === 'math') {
+    startMathSprint();
+    return;
+  }
+  pause();
+  G = createInitialState(true);
+  setClipboardString('');
+  document.getElementById('clock').textContent = '00:00';
+  document.getElementById('inlineChatClock').textContent = '00:00';
+  document.getElementById('jumpBadge').classList.add('hidden');
+  document.getElementById('btnNext').classList.add('hidden');
+  document.getElementById('pendingBadge').classList.add('hidden');
+  document.getElementById('syncClipBtn').classList.add('hidden');
+
+  const allyPreview = G.allies.map(a => {
+    const r = ROLES.find(x => x.id === a.roleId);
+    return `<span class="px-2 py-0.5 rounded text-[11px]" style="background:#0B1626; border:1px solid ${a.isPlayer ? 'var(--gold)' : '#1C2C44'}; color:${a.isPlayer ? 'var(--gold)' : 'var(--text-bright)'};">
+      <strong style="color:${r.c};">${r.tag}:</strong> ${escapeHtml(a.name)} (${a.champ})${a.isPlayer ? ' ★' : ''}
+    </span>`;
+  }).join(' ');
+
+  document.getElementById('eventArea').innerHTML = `
+    <div id="welcome" class="my-auto py-6 text-center max-w-lg mx-auto" style="text-shadow: none;">
+      <div class="text-2xl mb-1.5 font-semibold" style="color: var(--gold);">⚡ New 5v5 Draft Ready</div>
+      <div class="text-xs mb-3 leading-relaxed" style="color: var(--text-light);">
+        New champions &amp; gamer tags rolled! Check the Enemy Team on the left TAB scoreboard, then press <span class="key-cap">START</span> or <span class="key-cap">Space</span>.
+      </div>
+      <div class="p-3 rounded-lg mb-4" style="background: rgba(5, 10, 18, 0.85); border: 1px solid var(--border-gold);">
+        <div class="text-[10px] font-semibold uppercase tracking-wider mb-2" style="color: var(--lol-ally);">Your Ally Team This Game</div>
+        <div class="flex flex-wrap justify-center gap-1.5">${allyPreview}</div>
+      </div>
+    </div>`;
+  document.getElementById('recent').innerHTML = '';
+  renderBoard();
+  renderStats();
+  renderTimers();
+}
+
+function updateClockDisplay() {
+  const s = fmtChat(G.t);
+  document.getElementById('clock').textContent = s;
+  document.getElementById('inlineChatClock').textContent = s;
+}
+
+function tick() {
+  G.t++;
+  updateClockDisplay();
+  syncCooldownsWithClock();
+  renderBoard();
+  renderTimers();
+  renderClipboardPreview();
+}
+
+function syncCooldownsWithClock() {
+  G.enemies.forEach(e => {
+    Object.values(e.spells).forEach(sp => {
+      if (!sp.up && G.t >= sp.backAt) sp.up = true;
+    });
+  });
+}
+
+// Ensures targetTime never lands inside the narrow [playerTime, expiresAt] gap
+function avoidAmbiguousJumpWindow(targetTime) {
+  G.activeTimers.forEach(t => {
+    const low = Math.min(t.playerTime, t.expiresAt);
+    const high = Math.max(t.playerTime, t.expiresAt);
+    if (targetTime >= low - 3 && targetTime <= high + 4) {
+      targetTime = high + 8;
+    }
+  });
+  return targetTime;
+}
+
+function advanceClockTo(newTime, showJumpBadge = true) {
+  newTime = avoidAmbiguousJumpWindow(newTime);
+  const delta = newTime - G.t;
+  G.t = newTime;
+
+  updateClockDisplay();
+  const clockEl = document.getElementById('clock');
+  clockEl.classList.remove('clock-jump');
+  void clockEl.offsetWidth;
+  clockEl.classList.add('clock-jump');
+
+  const newlyExpired = G.activeTimers.filter(t => isTimerExpired(t));
+
+  syncCooldownsWithClock();
+  renderTimers();
+  renderBoard();
+  renderClipboardPreview();
+
+  if (showJumpBadge && delta > 5) {
+    const badge = document.getElementById('jumpBadge');
+    badge.textContent = `⏭ +${fmt(delta)}`;
+    badge.classList.remove('hidden');
+
+    const area = document.getElementById('eventArea');
+    const div = document.createElement('div');
+    div.className = 'my-2 py-1 px-2 text-xs mono flex items-center gap-2';
+    div.style.cssText = 'color: #526074; border-top: 1px dashed #152232; border-bottom: 1px dashed #152232; text-shadow: none;';
+    const expText = newlyExpired.length > 0
+      ? ` · <span style="color:var(--warn);">🧹 Expired (delete from front): <strong>${newlyExpired.map(x => formatTimerToken(x.playerTime, x.role.id, x.spellId)).join(', ')}</strong></span>`
+      : '';
+    div.innerHTML = `<span>⏭ +${fmt(delta)} skip → Clock is now <strong style="color:var(--text-bright);">${fmtChat(G.t)}</strong>${expText}</span>`;
+    area.appendChild(div);
+    scrollChatToBottom();
+  }
+
+  return newlyExpired.map(x => `${x.role.id}:${x.spellId || 'flash'}`);
+}
+
+function isTimerExpired(t) {
+  return t.expiresAt <= G.t || t.playerTime <= G.t;
+}
+
+// ===================== PACING & EVENT GENERATOR =====================
+function getAvailableSpellPairs(atTime = G.t) {
+  const pairs = [];
+  G.enemies.forEach(e => {
+    Object.values(e.spells).forEach(sp => {
+      if (sp.up || atTime >= sp.backAt) {
+        pairs.push({ enemy: e, spellId: sp.id });
+      }
+    });
+  });
+  return pairs;
+}
+
+function manualNext() {
+  if (currentMode === 'math') {
+    startMathSprint();
+    return;
+  }
+  if (!G.on) {
+    start();
+    return;
+  }
+  clearScheduledTimeouts();
+  G.pings.forEach(p => {
+    if (p.answeredAt === null) {
+      p.answeredAt = G.t;
+      markPingLineResolved(p.id);
+    }
+  });
+  updatePendingBadge();
+  triggerNextEvent(true);
+}
+
+function triggerNextEvent(doTimeJump = true) {
+  clearScheduledTimeouts();
+
+  if (currentMode === 'rapid') {
+    G.enemies.forEach(e => {
+      Object.values(e.spells).forEach(sp => { sp.up = true; sp.backAt = 0; });
+    });
+    G.activeTimers = [];
+    const randomTime = 75 + Math.floor(Math.random() * 1800);
+    G.t = randomTime;
+    updateClockDisplay();
+    document.getElementById('jumpBadge').classList.add('hidden');
+    const pairs = getAvailableSpellPairs();
+    const chosen = pick(pairs);
+    fireSinglePing(chosen.enemy, chosen.spellId);
+    return;
+  }
+
+  if (currentMode === 'instant') {
+    let justExpiredKeys = [];
+    if (doTimeJump) {
+      let jump = 55 + Math.floor(Math.random() * 60);
+      let targetTime = G.t + jump;
+
+      const availAtTarget = getAvailableSpellPairs(targetTime);
+      if (availAtTarget.length === 0) {
+        const allBacks = G.enemies.flatMap(e => Object.values(e.spells).map(sp => sp.backAt));
+        const earliestBack = Math.min(...allBacks);
+        targetTime = earliestBack + 10 + Math.floor(Math.random() * 20);
+      }
+      justExpiredKeys = advanceClockTo(targetTime, true);
+    }
+
+    const avail = getAvailableSpellPairs();
+    const preferred = avail.filter(p => !justExpiredKeys.includes(`${p.enemy.role.id}:${p.spellId}`));
+    const pool = preferred.length > 0 ? preferred : avail;
+
+    if (pool.length > 0) {
+      if (isClutterEnabled() && Math.random() < 0.4) {
+        appendAmbientChatLine(G.t - 1);
+      }
+      const chosen = pick(pool);
+      fireSinglePing(chosen.enemy, chosen.spellId);
+    }
+    return;
+  }
+
+  if (currentMode === 'burst') {
+    if (doTimeJump) {
+      let jump = 70 + Math.floor(Math.random() * 75);
+      let targetTime = G.t + jump;
+
+      const availCount = getAvailableSpellPairs(targetTime).length;
+      if (availCount < 3) {
+        const allBacks = G.enemies.flatMap(e => Object.values(e.spells).map(sp => sp.backAt)).sort((a, b) => a - b);
+        targetTime = Math.max(targetTime, (allBacks[2] || targetTime) + 10 + Math.floor(Math.random() * 20));
+      }
+      advanceClockTo(targetTime, true);
+    }
+
+    spawnTeamfightBurst();
+  }
+}
+
+function spawnTeamfightBurst() {
+  const availPairs = getAvailableSpellPairs();
+  const availRoleIds = [...new Set(availPairs.map(p => p.enemy.role.id))];
+
+  const validScenarios = FIGHT_SCENARIOS.filter(sc =>
+    sc.roles.filter(rId => availRoleIds.includes(rId)).length >= 2
+  );
+
+  let chosenRoles = [];
+  if (validScenarios.length > 0) {
+    const sc = pick(validScenarios);
+    chosenRoles = sc.roles.filter(rId => availRoleIds.includes(rId));
+    if (chosenRoles.length > 3 && Math.random() < 0.5) {
+      chosenRoles = chosenRoles.slice(0, 3);
+    }
+  } else {
+    const count = Math.min(availRoleIds.length, 2 + Math.floor(Math.random() * 2));
+    chosenRoles = availRoleIds.slice(0, count);
+  }
+
+  // Pick 1 available spell (or occasionally 2 spells if same champ pops Flash + Ignite/Heal!) for each chosen role
+  const burstEvents = [];
+  chosenRoles.forEach(rId => {
+    const rolePairs = availPairs.filter(p => p.enemy.role.id === rId);
+    if (rolePairs.length > 0) {
+      const first = pick(rolePairs);
+      burstEvents.push(first);
+      if (rolePairs.length > 1 && burstEvents.length < 4 && Math.random() < 0.25) {
+        const second = rolePairs.find(p => p.spellId !== first.spellId);
+        if (second) burstEvents.push(second);
+      }
+    }
+  });
+
+  burstEvents.sort(() => Math.random() - 0.5);
+
+  if (isClutterEnabled()) {
+    appendAmbientChatLine(G.t);
+  }
+
+  G.burstSpawning = true;
+
+  let cumulativeDelay = 0;
+  burstEvents.forEach((ev, idx) => {
+    if (idx > 0) {
+      cumulativeDelay += 250 + Math.floor(Math.random() * 300);
+    }
+    const tid = setTimeout(() => {
+      if (!G.on) return;
+      const spObj = ev.enemy.spells[ev.spellId];
+      if (spObj && spObj.up) {
+        fireSinglePing(ev.enemy, ev.spellId);
+      }
+      if (idx === burstEvents.length - 1) {
+        G.burstSpawning = false;
+      }
+    }, cumulativeDelay);
+    G.jumpTimeouts.push(tid);
+  });
+}
+
+// Clickable Spell icon on TAB scoreboard!
+function manualPingEnemy(roleId, spellId = 'flash') {
+  if (currentMode === 'math') return;
+  if (!G.on) start();
+  const enemy = G.enemies.find(e => e.role.id === roleId);
+  if (!enemy) return;
+  const sp = enemy.spells[spellId];
+  if (sp && sp.up) {
+    fireSinglePing(enemy, spellId);
+  }
+}
+
+// ===================== IN-GAME CHAT PINGS & CLUTTER =====================
+function isClutterEnabled() {
+  return document.getElementById('clutterToggle')?.checked;
+}
+
+function pickPingingAlly(enemyRoleId) {
+  if (Math.random() < 0.6) {
+    const laneAlly = G.allies.find(a => a.roleId === enemyRoleId);
+    if (laneAlly) return laneAlly;
+  }
+  return pick(G.allies);
+}
+
+function appendAmbientChatLine(timestampSec) {
+  const tStr = fmtChat(Math.max(1, timestampSec));
+  const ally = pick(G.allies);
+  const enemy = pick(G.enemies);
+  const roll = Math.random();
+  let html = '';
+
+  if (roll < 0.35) {
+    html = `<span style="color:var(--lol-timestamp);">${tStr}</span> <span style="color:var(--lol-ally);">${ally.name} (${ally.champ})</span> <span style="color:var(--lol-system);">signals to retreat</span>`;
+  } else if (roll < 0.65) {
+    html = `<span style="color:var(--lol-timestamp);">${tStr}</span> <span style="color:var(--lol-ally);">${ally.name} (${ally.champ})</span> <span style="color:var(--lol-system);">signals to all in</span>`;
+  } else if (roll < 0.88) {
+    html = `<span style="color:var(--lol-timestamp);">${tStr}</span> <span style="color:var(--lol-ally);">${ally.name} (${ally.champ}):</span> <span style="color:var(--lol-enemy);">${enemy.champ}</span> <span style="color:var(--lol-system);">-</span> <span style="color:#58B858;">Alive</span>`;
+  } else {
+    html = `<span style="color:var(--lol-timestamp);">${tStr}</span> <span style="color:var(--lol-enemy);">${enemy.gamerTag} (${enemy.champ})</span> <span style="color:var(--lol-spell);">has slain an enemy!</span>`;
+  }
+
+  const area = document.getElementById('eventArea');
+  const div = document.createElement('div');
+  div.className = 'lol-line';
+  div.innerHTML = html;
+  area.appendChild(div);
+  scrollChatToBottom();
+}
+
+function fireSinglePing(e, spellId = 'flash') {
+  const sp = SPELLS[spellId] || SPELLS.flash;
+  const idx = G.enemies.indexOf(e);
+  if (e.spells[sp.id]) {
+    e.spells[sp.id].up = false;
+    e.spells[sp.id].backAt = G.t + sp.cd;
+  }
+
+  const ally = pickPingingAlly(e.role.id);
+
+  const ping = {
+    id: ++G.pingId,
+    enemyIdx: idx,
+    role: e.role,
+    spellId: sp.id,
+    spellName: sp.name,
+    spellCd: sp.cd,
+    champ: e.champ,
+    allyName: ally.name,
+    allyChamp: ally.champ,
+    usedAt: G.t,
+    correctTime: G.t + sp.cd,
+    answeredAt: null,
+    correct: null,
+    realMs: Date.now(),
+  };
+  G.pings.push(ping);
+
+  appendPingChatLine(ping, G.t, true);
+
+  if (isClutterEnabled() && Math.random() < 0.5) {
+    const duplicateDelay = 220 + Math.floor(Math.random() * 350);
+    const tid = setTimeout(() => {
+      if (!G.on) return;
+      appendPingChatLine(ping, G.t, false);
+    }, duplicateDelay);
+    G.jumpTimeouts.push(tid);
+  }
+
+  playPing();
+  updatePendingBadge();
+  renderBoard();
+}
+
+function appendPingChatLine(ping, timestampSec, isPrimary) {
+  const area = document.getElementById('eventArea');
+  const div = document.createElement('div');
+  if (isPrimary) {
+    div.id = 'ping-' + ping.id;
+    div.className = 'lol-line unanswered-ping flex items-center justify-between';
+  } else {
+    div.className = 'lol-line flex items-center justify-between opacity-90';
+  }
+
+  const sp = SPELLS[ping.spellId] || SPELLS.flash;
+
+  div.innerHTML = `
+    <div>
+      <span style="color:var(--lol-timestamp);">${fmtChat(timestampSec)}</span>
+      <span style="color:var(--lol-ally);">${ping.allyName} (${ping.allyChamp}):</span>
+      <span style="color:var(--lol-enemy); font-weight:600;">${ping.champ}</span>
+      <span style="color:var(--lol-spell);">used ${sp.name}</span>
+    </div>
+    ${isPrimary ? `<span data-ping-status="${ping.id}" class="mono text-[11px] px-2 py-0.5 rounded" style="color:${sp.color}; text-shadow:none;">unlogged</span>` : ''}
+  `;
+  area.appendChild(div);
+  scrollChatToBottom();
+}
+
+function markPingLineResolved(pingId) {
+  const el = document.getElementById('ping-' + pingId);
+  if (el) el.classList.remove('unanswered-ping');
+}
+
+function scrollChatToBottom() {
+  const wrapper = document.getElementById('chatFeedWrapper');
+  const area = document.getElementById('eventArea');
+  if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
+  if (area) area.scrollTop = area.scrollHeight;
+}
+
+function updatePendingBadge() {
+  const count = G.pings.filter(p => p.answeredAt === null).length;
+  const badge = document.getElementById('pendingBadge');
+  if (count > 0) {
+    badge.textContent = `${count} unlogged spell${count > 1 ? 's' : ''}`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function playPing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(1140, ctx.currentTime + 0.065);
+    g.gain.setValueAtTime(0.06, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.start(); o.stop(ctx.currentTime + 0.18);
+  } catch (e) {}
+}
+
+// ===================== CHAT & CLIPBOARD =====================
+function setClipboardString(text) {
+  savedClipboard = text;
+  try { if (text) navigator.clipboard.writeText(text); } catch (e) {}
+  renderClipboardPreview();
+}
+
+function syncClipboardToCanonical() {
+  const active = G.activeTimers.filter(t => !isTimerExpired(t));
+  active.forEach(t => { t.droppedOnce = false; });
+  const str = active.map(t => formatTimerToken(t.playerTime, t.role.id, t.spellId)).join(' ');
+  setClipboardString(str);
+  document.getElementById('syncClipBtn').classList.add('hidden');
+}
+
+function renderClipboardPreview() {
+  const el = document.getElementById('clipboardPreview');
+  if (!savedClipboard) {
+    el.innerHTML = '<span style="color: #2A3444;">Empty</span>';
+    return;
+  }
+
+  const highlightExpired = document.getElementById('highlightExpiredToggle')?.checked;
+  if (!highlightExpired || currentMode === 'rapid') {
+    el.textContent = savedClipboard;
+    return;
+  }
+
+  const parsed = parseMessage(savedClipboard);
+  if (parsed.length === 0) {
+    el.textContent = savedClipboard;
+    return;
+  }
+
+  el.innerHTML = parsed.map(tok => {
+    const expired = tok.time <= G.t;
+    const label = formatTimerToken(tok.time, tok.role.id, tok.spell);
+    if (expired) {
+      return `<span class="px-1.5 py-0.5 rounded" style="background:rgba(232,64,87,0.16); color:var(--wrong); text-decoration:line-through;" title="Expired at ${fmtChat(tok.time)} — delete this on next paste!">${label}</span>`;
+    }
+    return `<span class="px-1.5 py-0.5 rounded" style="background:rgba(29,185,84,0.12); color:var(--correct);">${label}</span>`;
+  }).join(' ');
+}
+
+function openChat() {
+  if (currentMode === 'math') return;
+  if (!G.on) start();
+  G.chatOpen = true;
+  pressedCtrlCThisTurn = false;
+  document.getElementById('copyHabitBadge').classList.add('hidden');
+  document.getElementById('chatRow').classList.remove('hidden');
+  document.getElementById('chatHint').classList.add('hidden');
+  updateClockDisplay();
+  const inp = document.getElementById('chatInput');
+  inp.focus();
+}
+
+function closeChat() {
+  G.chatOpen = false;
+  document.getElementById('chatRow').classList.add('hidden');
+  document.getElementById('chatHint').classList.remove('hidden');
+  document.getElementById('chatInput').value = '';
+}
+
+function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const raw = inp.value.trim();
+  if (!raw) { closeChat(); return; }
+
+  const strictCopy = document.getElementById('strictCopyToggle')?.checked;
+
+  G.stats.msgsSent++;
+  if (pressedCtrlCThisTurn) {
+    G.stats.msgsWithCtrlC++;
+  }
+
+  if (!strictCopy || pressedCtrlCThisTurn) {
+    setClipboardString(raw);
+  }
+
+  const me = G.allies.find(a => a.isPlayer) || G.allies[3];
+  const msgLine = document.createElement('div');
+  msgLine.className = 'lol-line flex items-center justify-between flex-wrap gap-2';
+  msgLine.innerHTML = `
+    <div>
+      <span style="color:var(--lol-timestamp);">${fmtChat(G.t)}</span>
+      <span style="color:var(--lol-ally);">${me.name} (${me.champ}):</span>
+      <span style="color:var(--text-bright);">${escapeHtml(raw)}</span>
+    </div>
+    <div class="flex items-center gap-1.5 flex-wrap" data-msg-feedback></div>
+  `;
+  document.getElementById('eventArea').appendChild(msgLine);
+  scrollChatToBottom();
+
+  const feedbackContainer = msgLine.querySelector('[data-msg-feedback]');
+
+  if (strictCopy && !pressedCtrlCThisTurn) {
+    addInlineBadge(feedbackContainer, '⚠️ Forgot Ctrl+C before Enter!', 'var(--warn)');
+  }
+
+  const timers = parseMessage(raw);
+
+  if (timers.length === 0) {
+    addInlineBadge(feedbackContainer, '⚠️ Format: 620top or top620', 'var(--wrong)');
+  } else {
+    processFullListAudit(timers, feedbackContainer);
+  }
+
+  inp.value = '';
+  closeChat();
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function addInlineBadge(container, text, color) {
+  if (!container) return;
+  const span = document.createElement('span');
+  span.className = 'mono text-[11px] px-2 py-0.5 rounded font-semibold pop-badge';
+  span.style.cssText = `background: rgba(1, 10, 19, 0.88); border: 1px solid ${color}55; color: ${color}; text-shadow: none;`;
+  span.textContent = text;
+  container.appendChild(span);
+}
+
+// ===================== FULL 3-PART CLIPBOARD AUDIT (SMART TOKEN CLASSIFIER) =====================
+function evaluateTiming(playerTime, exactTime) {
+  const diff = playerTime - exactTime;
+  if (diff === 0) {
+    return { ok: true, kind: 'exact', diff: 0, label: 'Exact' };
+  }
+  if (diff < 0 && diff >= -earlyToleranceSec) {
+    return { ok: true, kind: 'safe', diff, label: `Safe ${diff}s` };
+  }
+  if (diff > 0) {
+    return { ok: false, kind: 'late', diff, label: `LATE +${diff}s!` };
+  }
+  return { ok: false, kind: 'wrong', diff, label: `Off by ${diff}s` };
+}
+
+function processFullListAudit(submittedTimers, feedbackContainer) {
+  const preExistingActive = G.activeTimers.filter(at => !isTimerExpired(at));
+  const uncleanedExpired = G.allTimersHistory.filter(ht => isTimerExpired(ht) && !ht.cleanedByPlayer);
+  const pending = G.pings.filter(p => p.answeredAt === null);
+
+  let anyMistakeThisMsg = false;
+  let newCorrectCount = 0;
+  let keptActiveCount = 0;
+  let expiredLeftInNames = [];
+  let droppedActiveNames = [];
+  let cleanedNames = [];
+
+  const matchedActiveKeys = new Set();
+
+  submittedTimers.forEach(timer => {
+    const tokenLabel = formatTimerToken(timer.time, timer.role.id, timer.spell);
+    const key = `${timer.role.id}:${timer.spell}`;
+
+    // STEP 1: Is this token an already-expired timestamp (timer.time <= G.t)?
+    if (timer.time <= G.t && currentMode !== 'rapid') {
+      anyMistakeThisMsg = true;
+      G.stats.expiredLeftIn++;
+      expiredLeftInNames.push(tokenLabel);
+      return;
+    }
+
+    // STEP 2: Does this token match a pre-existing ACTIVE timer (same role AND same spell)?
+    const activeMatch = preExistingActive.find(at =>
+      at.role.id === timer.role.id &&
+      (at.spellId || 'flash') === timer.spell &&
+      (at.playerTime === timer.time || Math.abs(at.expiresAt - timer.time) <= earlyToleranceSec)
+    );
+    if (activeMatch && !matchedActiveKeys.has(key)) {
+      matchedActiveKeys.add(key);
+      activeMatch.droppedOnce = false;
+      keptActiveCount++;
+      G.stats.keptOk++;
+      return;
+    }
+
+    // STEP 3: Does this token match a pending (unanswered) ping for this role + spell?
+    const match = pending.find(p => p.role.id === timer.role.id && p.spellId === timer.spell && p.answeredAt === null);
+    if (match) {
+      const elapsed = Date.now() - match.realMs;
+      const sec = (elapsed / 1000).toFixed(1);
+      const evalRes = evaluateTiming(timer.time, match.correctTime);
+
+      match.answeredAt = G.t;
+      match.correct = evalRes.ok;
+
+      markPingLineResolved(match.id);
+      const status = document.querySelector(`[data-ping-status="${match.id}"]`);
+
+      if (evalRes.ok) {
+        newCorrectCount++;
+        G.stats.ok++;
+        G.stats.times.push(parseFloat(sec));
+
+        const entry = {
+          role: timer.role,
+          spellId: timer.spell,
+          champ: match.champ,
+          expiresAt: match.correctTime,
+          playerTime: timer.time,
+          droppedOnce: false,
+        };
+        G.activeTimers = G.activeTimers.filter(x => !(x.role.id === timer.role.id && (x.spellId || 'flash') === timer.spell));
+        G.activeTimers.push(entry);
+        G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+
+        addInlineBadge(feedbackContainer, `✅ +${tokenLabel} ${evalRes.label} (${sec}s)`, 'var(--correct)');
+        if (status) {
+          status.textContent = `✅ ${tokenLabel} (${evalRes.label})`;
+          status.style.color = 'var(--correct)';
+        }
+        addRecent(true, timer.role, sec, `${SPELLS[timer.spell].name} · ${evalRes.label}`);
+      } else {
+        anyMistakeThisMsg = true;
+        G.stats.wrong++;
+
+        const safe5 = Math.floor(match.correctTime / 5) * 5;
+        const safeLabel = formatTimerToken(safe5, match.role.id, match.spellId);
+        const entry = {
+          role: match.role,
+          spellId: match.spellId,
+          champ: match.champ,
+          expiresAt: match.correctTime,
+          playerTime: safe5,
+          droppedOnce: false,
+        };
+        G.activeTimers = G.activeTimers.filter(x => !(x.role.id === match.role.id && (x.spellId || 'flash') === match.spellId));
+        G.activeTimers.push(entry);
+        G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+
+        if (evalRes.kind === 'late') {
+          addInlineBadge(feedbackContainer, `❌ LATE (+${evalRes.diff}s)! Use ${safeLabel}`, 'var(--wrong)');
+          if (status) { status.textContent = `❌ Late! Up at ${fmtCompact(match.correctTime)}`; status.style.color = 'var(--wrong)'; }
+        } else {
+          addInlineBadge(feedbackContainer, `❌ Typed ${fmtCompact(timer.time)}, safe: ${safeLabel}`, 'var(--wrong)');
+          if (status) { status.textContent = `❌ Safe: ${safeLabel}`; status.style.color = 'var(--wrong)'; }
+        }
+        addRecent(false, timer.role, sec, `${SPELLS[match.spellId].name} · ${evalRes.label}`);
+      }
+      return;
+    }
+
+    // STEP 3b: Right role, wrong spell (e.g. forgot 'tp' on '2200top' when Teleport was pinged!)
+    const sameRoleWrongSpell = pending.find(p => p.role.id === timer.role.id && p.answeredAt === null);
+    if (sameRoleWrongSpell) {
+      anyMistakeThisMsg = true;
+      const elapsed = Date.now() - sameRoleWrongSpell.realMs;
+      const sec = (elapsed / 1000).toFixed(1);
+      sameRoleWrongSpell.answeredAt = G.t;
+      sameRoleWrongSpell.correct = false;
+      G.stats.wrong++;
+
+      markPingLineResolved(sameRoleWrongSpell.id);
+      const status = document.querySelector(`[data-ping-status="${sameRoleWrongSpell.id}"]`);
+      const safe5 = Math.floor(sameRoleWrongSpell.correctTime / 5) * 5;
+      const safeLabel = formatTimerToken(safe5, sameRoleWrongSpell.role.id, sameRoleWrongSpell.spellId);
+      const spName = SPELLS[sameRoleWrongSpell.spellId].name;
+
+      if (status) {
+        status.textContent = `❌ Used ${spName}! (${safeLabel})`;
+        status.style.color = 'var(--wrong)';
+      }
+
+      const entry = {
+        role: sameRoleWrongSpell.role,
+        spellId: sameRoleWrongSpell.spellId,
+        champ: sameRoleWrongSpell.champ,
+        expiresAt: sameRoleWrongSpell.correctTime,
+        playerTime: safe5,
+        droppedOnce: false,
+      };
+      G.activeTimers = G.activeTimers.filter(x => !(x.role.id === sameRoleWrongSpell.role.id && (x.spellId || 'flash') === sameRoleWrongSpell.spellId));
+      G.activeTimers.push(entry);
+      G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+
+      addInlineBadge(feedbackContainer, `❌ ${sameRoleWrongSpell.champ} used ${spName}, use ${safeLabel}!`, 'var(--wrong)');
+      addRecent(false, sameRoleWrongSpell.role, sec, `Wrong Spell (${spName})`);
+      return;
+    }
+
+    // STEP 4: Did they misidentify the Champion's role for a pending ping?
+    const stillUnanswered = pending.filter(p => p.answeredAt === null);
+    if (stillUnanswered.length === 1) {
+      anyMistakeThisMsg = true;
+      const onlyPing = stillUnanswered[0];
+      const elapsed = Date.now() - onlyPing.realMs;
+      const sec = (elapsed / 1000).toFixed(1);
+      onlyPing.answeredAt = G.t;
+      onlyPing.correct = false;
+      G.stats.wrong++;
+
+      markPingLineResolved(onlyPing.id);
+      const status = document.querySelector(`[data-ping-status="${onlyPing.id}"]`);
+      const safe5 = Math.floor(onlyPing.correctTime / 5) * 5;
+      const safeLabel = formatTimerToken(safe5, onlyPing.role.id, onlyPing.spellId);
+      if (status) {
+        status.textContent = `❌ ${onlyPing.champ} is ${onlyPing.role.tag} (${safeLabel})`;
+        status.style.color = 'var(--wrong)';
+      }
+
+      const entry = { role: onlyPing.role, spellId: onlyPing.spellId, champ: onlyPing.champ, expiresAt: onlyPing.correctTime, playerTime: safe5, droppedOnce: false };
+      G.activeTimers = G.activeTimers.filter(x => !(x.role.id === onlyPing.role.id && (x.spellId || 'flash') === onlyPing.spellId));
+      G.activeTimers.push(entry);
+      G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+
+      addInlineBadge(feedbackContainer, `❌ ${onlyPing.champ} is ${onlyPing.role.tag}, not ${timer.role.tag}!`, 'var(--wrong)');
+      addRecent(false, onlyPing.role, sec, 'Wrong Role');
+    }
+  });
+
+  // STEP 5: Audit Dropped Active & Cleaned Expired (in progressive modes)
+  if (currentMode !== 'rapid') {
+    preExistingActive.forEach(at => {
+      const k = `${at.role.id}:${at.spellId || 'flash'}`;
+      if (!matchedActiveKeys.has(k) && !at.droppedOnce) {
+        anyMistakeThisMsg = true;
+        at.droppedOnce = true;
+        G.stats.droppedActive++;
+        droppedActiveNames.push(formatTimerToken(at.playerTime, at.role.id, at.spellId));
+      }
+    });
+
+    uncleanedExpired.forEach(ht => {
+      const wasLeftIn = submittedTimers.some(st =>
+        st.role.id === ht.role.id &&
+        st.spell === (ht.spellId || 'flash') &&
+        Math.abs(st.time - ht.playerTime) <= 15
+      );
+      if (!wasLeftIn) {
+        ht.cleanedByPlayer = true;
+        G.stats.cleanedOk++;
+        cleanedNames.push(formatTimerToken(ht.playerTime, ht.role.id, ht.spellId));
+      }
+    });
+
+    if (keptActiveCount > 0 && droppedActiveNames.length === 0) {
+      addInlineBadge(feedbackContainer, `✓ Kept ${keptActiveCount} active`, 'var(--teal)');
+    }
+    if (droppedActiveNames.length > 0) {
+      addInlineBadge(feedbackContainer, `⚠️ Dropped active: ${droppedActiveNames.join(', ')}!`, 'var(--wrong)');
+      document.getElementById('syncClipBtn').classList.remove('hidden');
+    }
+    if (cleanedNames.length > 0) {
+      addInlineBadge(feedbackContainer, `🧹 Cleaned ${cleanedNames.join(', ')}`, 'var(--gold)');
+    }
+    if (expiredLeftInNames.length > 0) {
+      addInlineBadge(feedbackContainer, `🗑️ Left expired: ${expiredLeftInNames.join(', ')}!`, 'var(--wrong)');
+      document.getElementById('syncClipBtn').classList.remove('hidden');
+    }
+  }
+
+  if (!anyMistakeThisMsg && newCorrectCount > 0) {
+    G.stats.perfectLists++;
+    G.stats.streak++;
+    if (G.stats.streak > G.stats.best) {
+      G.stats.best = G.stats.streak;
+      bestStreakAllTime = Math.max(bestStreakAllTime, G.stats.best);
+      saveSettings();
+    }
+  } else if (anyMistakeThisMsg) {
+    G.stats.streak = 0;
+  }
+
+  updatePendingBadge();
+  renderStats();
+  renderTimers();
+  renderClipboardPreview();
+
+  const remainingPending = G.pings.filter(p => p.answeredAt === null).length;
+  if (remainingPending === 0 && !G.burstSpawning && G.on) {
+    const delayMs = currentMode === 'rapid' ? 280 : 1050;
+    const tid = setTimeout(() => {
+      if (G.on && G.pings.filter(p => p.answeredAt === null).length === 0 && !G.burstSpawning) {
+        triggerNextEvent(true);
+      }
+    }, delayMs);
+    G.jumpTimeouts.push(tid);
+  }
+}
+
+// ===================== RENDERING =====================
+function renderBoard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = G.enemies.map(e => {
+    const hasPending = G.pings.some(p => p.role.id === e.role.id && p.answeredAt === null);
+    const spellSlotsHtml = Object.values(e.spells).map(spState => {
+      const sp = SPELLS[spState.id];
+      return `
+        <div onclick="manualPingEnemy('${e.role.id}', '${sp.id}')"
+             class="spell-slot ${spState.up ? '' : 'down'}"
+             style="background:${sp.bg}; color:${sp.textDark ? '#091220' : '#F0E6D2'};"
+             title="${sp.name} (${fmt(sp.cd)} CD)${spState.up ? ' — UP (click to ping)' : ' — Down'}">
+          ${sp.icon}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="px-3.5 py-2.5 flex items-center gap-2.5"
+           style="border-bottom:1px solid rgba(30,38,52,0.65); ${hasPending ? 'background:rgba(217,163,54,0.09);border-left:3px solid var(--lol-spell);' : ''}">
+        <div class="w-7 h-7 rounded flex items-center justify-center shrink-0"
+             style="background:${e.role.c}16; color:${e.role.c}; border:1px solid ${e.role.c}35;"
+             title="${e.role.label}">
+          ${ROLE_SVGS[e.role.id]}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-bold truncate" style="color:var(--text-bright);">${e.champ}</div>
+          <div class="text-[11px] flex items-center gap-1.5 mt-0.5" style="color:var(--text-light);">
+            <span class="font-semibold" style="color:${e.role.c};">${e.role.tag}</span>
+            <span>·</span>
+            <span class="truncate" style="color:#526074;">${e.gamerTag}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          ${spellSlotsHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  const s = G.stats;
+  document.getElementById('perfectCountBadge').textContent = `${s.perfectLists} Perfect`;
+  document.getElementById('sCorrect').innerHTML = `${s.ok} <span class="text-xs font-normal" style="color:var(--wrong);">/ ${s.wrong} err</span>`;
+  document.getElementById('sCleaned').innerHTML = `${s.cleanedOk} <span class="text-xs font-normal" style="color:var(--wrong);">/ ${s.expiredLeftIn} left</span>`;
+  document.getElementById('sKept').innerHTML = `${s.keptOk} <span class="text-xs font-normal" style="color:var(--wrong);">/ ${s.droppedActive} drop</span>`;
+  document.getElementById('sStreak').innerHTML = `${s.streak} <span class="text-xs font-normal" style="color:var(--gold-dim);">(${s.best})</span>`;
+  document.getElementById('sAvg').textContent = s.times.length
+    ? (s.times.reduce((a, b) => a + b, 0) / s.times.length).toFixed(1) + 's' : '—';
+  document.getElementById('sCopyHabit').textContent = s.msgsSent > 0
+    ? Math.round((s.msgsWithCtrlC / s.msgsSent) * 100) + '%' : '—';
+}
+
+function renderTimers() {
+  G.activeTimers = G.activeTimers.filter(t => !isTimerExpired(t));
+  document.getElementById('activeCount').textContent = G.activeTimers.length;
+
+  const el = document.getElementById('activeTimers');
+  if (!G.activeTimers.length) {
+    el.innerHTML = '<div class="text-xs" style="color:#2A3444;">None tracked</div>';
+    return;
+  }
+  el.innerHTML = G.activeTimers.map(t => {
+    const sp = SPELLS[t.spellId || 'flash'] || SPELLS.flash;
+    const rem = Math.max(0, t.expiresAt - G.t);
+    const pct = Math.max(0, Math.min(100, Math.round((1 - rem / sp.cd) * 100)));
+    const warn = rem <= 50;
+    return `
+      <div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold" style="color:${t.role.c};">
+            ${sp.icon} ${t.champ} <span class="mono" style="color:var(--text-bright);">${formatTimerToken(t.playerTime, t.role.id, sp.id)}</span>
+          </span>
+          <span class="mono text-[11px]" style="color:${warn ? 'var(--warn)' : 'var(--text-light)'};">${rem}s</span>
+        </div>
+        <div class="w-full rounded-full mt-1" style="height:2px; background:#1E293B;">
+          <div class="timer-bar" style="width:${pct}%; background:${warn ? 'var(--warn)' : sp.color};"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addRecent(ok, role, sec, note) {
+  const el = document.getElementById('recent');
+  const d = document.createElement('div');
+  const sc = parseFloat(sec) < 3 ? 'color:var(--correct)' : parseFloat(sec) < 6 ? 'color:var(--gold)' : 'color:var(--wrong)';
+  d.className = 'flex items-center justify-between text-xs py-0.5';
+  d.innerHTML = `
+    <span>
+      <span style="color:${role.c}; font-weight:600;">${role.tag}</span>
+      <span>${ok ? '✅' : '❌'}</span>
+      <span class="text-[10px]" style="color:var(--text-light);">${note || ''}</span>
+    </span>
+    <span class="mono" style="${sc};">${sec}s</span>`;
+  el.insertBefore(d, el.firstChild);
+  while (el.children.length > 20) el.removeChild(el.lastChild);
+}
+
+// ===================== TEAM ROSTER MODAL =====================
+function renderRosterModalInputs() {
+  const container = document.getElementById('rosterInputs');
+  if (!container) return;
+  container.innerHTML = allyRoster.map((ap, idx) => {
+    const rObj = ROLES.find(r => r.id === ap.roleId);
+    const isYou = !!ap.isPlayer;
+    return `
+      <div class="flex items-center gap-2 p-2 rounded"
+           style="background: ${isYou ? 'rgba(200,155,60,0.1)' : 'var(--bg-dark)'}; border: 1px solid ${isYou ? 'var(--border-highlight)' : 'var(--border-gold)'};">
+        <div class="w-14 flex items-center gap-1.5 shrink-0" style="color:${rObj.c}; font-weight:700;">
+          ${ROLE_SVGS[rObj.id]}
+          <span>${rObj.tag}</span>
+        </div>
+        <input type="text" data-roster-idx="${idx}" value="${escapeHtml(ap.name)}"
+               oninput="allyRoster[${idx}].name = this.value.trim() || allyRoster[${idx}].name"
+               class="flex-1 px-2.5 py-1 rounded text-xs"
+               style="background:#060D17; border:1px solid #1C293D; color:var(--text-bright); outline:none;" />
+        <button type="button" onclick="selectPlayerRoleInModal(${idx})"
+                class="px-2.5 py-1 rounded text-[11px] font-semibold shrink-0"
+                style="background: ${isYou ? 'var(--gold)' : '#121C2D'}; color: ${isYou ? 'var(--bg-dark)' : 'var(--text-light)'}; border: 1px solid ${isYou ? 'var(--gold)' : '#243248'}; cursor: pointer;"
+                title="Set this role as 'You' when typing in chat">
+          ${isYou ? '★ YOU' : 'Set as You'}
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function selectPlayerRoleInModal(selectedIdx) {
+  // Sync current text input values before re-rendering
+  syncModalInputsToRoster();
+  allyRoster.forEach((ap, idx) => {
+    ap.isPlayer = (idx === selectedIdx);
+  });
+  renderRosterModalInputs();
+}
+
+function syncModalInputsToRoster() {
+  document.querySelectorAll('[data-roster-idx]').forEach(inp => {
+    const idx = parseInt(inp.getAttribute('data-roster-idx'), 10);
+    const val = inp.value.trim();
+    if (val && allyRoster[idx]) {
+      allyRoster[idx].name = val;
+    }
+  });
+}
+
+function applyQuickPlayer(roleId, playerName) {
+  syncModalInputsToRoster();
+  allyRoster.forEach(ap => {
+    if (ap.roleId === roleId) {
+      ap.isPlayer = true;
+      ap.name = playerName;
+    } else {
+      ap.isPlayer = false;
+    }
+  });
+  renderRosterModalInputs();
+}
+
+function loadGardenGamingPreset() {
+  const currentYouRole = allyRoster.find(a => a.isPlayer)?.roleId || 'mid';
+  const preset = { top: 'Krasito', jg: 'Don', mid: 'V1dde', ad: 'Kalle', sup: 'Nobozif' };
+  allyRoster.forEach(ap => {
+    ap.name = preset[ap.roleId] || ap.name;
+    ap.isPlayer = (ap.roleId === currentYouRole);
+  });
+  renderRosterModalInputs();
+}
+
+function randomizeModalTeammates() {
+  syncModalInputsToRoster();
+  rollRandomTeammateNames();
+  renderRosterModalInputs();
+}
+
+function toggleRosterModal() {
+  const modal = document.getElementById('rosterModal');
+  const isHidden = modal.classList.contains('hidden');
+  if (isHidden) {
+    renderRosterModalInputs();
+    document.getElementById('formatStyleSelect').value = formatStyle;
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+}
+
+function saveRosterPreferences() {
+  syncModalInputsToRoster();
+  allyRoster.forEach((ap, idx) => {
+    if (G.allies[idx]) {
+      G.allies[idx].name = ap.name;
+      G.allies[idx].isPlayer = !!ap.isPlayer;
+    }
+  });
+  formatStyle = document.getElementById('formatStyleSelect').value;
+  saveSettings();
+  renderTimers();
+  renderClipboardPreview();
+  toggleRosterModal();
+}
+
+// ===================== KEYBOARD & CLIPBOARD EVENTS =====================
+const chatInputEl = document.getElementById('chatInput');
+
+chatInputEl.addEventListener('copy', () => {
+  const sel = chatInputEl.value.substring(chatInputEl.selectionStart, chatInputEl.selectionEnd) || chatInputEl.value;
+  if (sel.trim()) {
+    pressedCtrlCThisTurn = true;
+    setClipboardString(sel.trim());
+    document.getElementById('copyHabitBadge').classList.remove('hidden');
+  }
+});
+
+document.addEventListener('keydown', e => {
+  // Ignore global shortcuts if Roster Modal is open
+  if (!document.getElementById('rosterModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') toggleRosterModal();
+    return;
+  }
+
+  if (currentMode === 'math') {
+    if (e.key === ' ' && !M.on) {
+      e.preventDefault();
+      startMathSprint();
+    }
+    return;
+  }
+
+  if (G.chatOpen) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChat();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeChat();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+      const sel = chatInputEl.value.substring(chatInputEl.selectionStart, chatInputEl.selectionEnd) || chatInputEl.value;
+      if (sel.trim()) {
+        pressedCtrlCThisTurn = true;
+        setClipboardString(sel.trim());
+        document.getElementById('copyHabitBadge').classList.remove('hidden');
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+      const beforeVal = chatInputEl.value;
+      const startPos = chatInputEl.selectionStart;
+      const endPos = chatInputEl.selectionEnd;
+      setTimeout(() => {
+        if (chatInputEl.value === beforeVal && savedClipboard) {
+          chatInputEl.value = beforeVal.slice(0, startPos) + savedClipboard + beforeVal.slice(endPos);
+          const newCursor = startPos + savedClipboard.length;
+          chatInputEl.setSelectionRange(newCursor, newCursor);
+        }
+      }, 15);
+    }
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    openChat();
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    manualNext();
+  }
+});
+
+// ===================== INIT =====================
+[1, 2, 3, 4].forEach(n => {
+  const btn = document.getElementById('lvl-' + n);
+  if (btn) btn.classList.toggle('active', n === spellLevel);
+});
+renderBoard();
+renderStats();
+renderTimers();
+renderClipboardPreview();
+</script>
+</body>
+</html>
