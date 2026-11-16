@@ -35,6 +35,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    .hidden { display: none !important; }
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -152,8 +153,8 @@
     }
 
     .spell-slot {
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border-radius: 4px;
       border: 1px solid #5A461C;
       display: flex;
@@ -165,6 +166,12 @@
       position: relative;
       overflow: hidden;
     }
+    .spell-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
     .spell-slot:hover {
       transform: scale(1.08);
       border-color: var(--gold);
@@ -175,21 +182,58 @@
       color: #526074 !important;
       box-shadow: none !important;
     }
+    .spell-slot.down img {
+      filter: grayscale(100%) brightness(0.42);
+    }
+    .haste-badge {
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      border: 1px solid #2A3548;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      transition: all 0.12s ease;
+      background: #060D17;
+    }
+    .haste-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .haste-badge.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 6px rgba(200, 155, 60, 0.45);
+      opacity: 1;
+    }
+    .haste-badge.inactive {
+      opacity: 0.25;
+      filter: grayscale(100%);
+    }
+    .haste-badge:hover {
+      opacity: 0.95;
+      transform: scale(1.12);
+    }
   </style>
 </head>
 <body>
   <div class="flex flex-col h-screen">
 
     <!-- ========== TOP BAR ========== -->
-    <header class="flex items-center justify-between px-4 py-2"
+    <header class="flex items-center justify-between px-3 py-2 gap-2"
             style="background: var(--bg-panel); border-bottom: 1px solid var(--border-gold);">
-      <!-- Left: Brand + 4 Training Modes -->
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="text-sm font-bold tracking-wide" style="color: var(--gold);">⚡ SUM TRAINER</span>
+      <!-- Left: Brand + 5 Training Modes -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold tracking-wide whitespace-nowrap" style="color: var(--gold);">⚡ SUM TRAINER</span>
         </div>
 
-        <div class="flex items-center gap-1 p-1 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
+        <div class="flex items-center gap-0.5 p-1 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
           <button id="mode-instant" onclick="setMode('instant')" class="mode-btn active"
                   title="Progressive game clock with full clipboard auditing: keep active timers, delete expired ones, add new ones">
             ⚡ Instant Jumps
@@ -203,14 +247,18 @@
             🎯 Rapid Solo
           </button>
           <button id="mode-math" onclick="setMode('math')" class="mode-btn"
-                  title="60-second pure +5:00 mental math sprint (instant 4-digit auto-submit)">
+                  title="60-second pure mental math sprint (instant 4-digit auto-submit)">
             🧠 60s Math Sprint
+          </button>
+          <button id="mode-quiz" onclick="setMode('quiz')" class="mode-btn"
+                  title="Practice Cosmic Insight (+18) & Ionian Boots (+10) cooldown math">
+            🎓 Haste Quiz
           </button>
         </div>
       </div>
 
       <!-- Center: Game Clock + Jump Indicator -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <div class="flex flex-col items-center">
           <div class="flex items-center gap-2">
             <div class="mono text-2xl font-bold tracking-wider stat-num" id="clock" style="color: var(--text-bright);">
@@ -221,41 +269,43 @@
               ⏭ +1:30
             </span>
           </div>
-          <div id="clockSub" class="text-[10px] tracking-wider uppercase" style="color: #4A5568;">
+          <div id="clockSub" class="text-[10px] tracking-wider uppercase whitespace-nowrap" style="color: #4A5568;">
             Full List Audit · Keep Active &amp; Purge Expired
           </div>
         </div>
       </div>
 
-      <!-- Right: Tolerance + Team Settings + Action Buttons -->
-      <div class="flex items-center gap-2">
-        <label id="toleranceWrap" class="flex items-center gap-1.5 text-xs mr-1" style="color: var(--text-light);"
-               title="In real games, teammates ping late. Rounding DOWN (early by up to 10s) is safe; rounding UP (late) gets your team killed!">
-          <span>Window:</span>
-          <select id="toleranceSelect" onchange="updateTolerance(this.value)" class="text-xs px-2 py-1 rounded"
-                  style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-bright); outline: none;">
-            <option value="10" selected>Safe Early (0 to -10s)</option>
-            <option value="5">Strict 5s (0 to -5s)</option>
-            <option value="0">Exact Second (0s)</option>
-          </select>
-        </label>
+      <!-- Right: Custom Rules + Cheat Sheet + Team Settings + Action Buttons -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="rulesBtn" onclick="toggleRulesModal()" class="px-2 py-1.5 rounded text-xs flex items-center gap-1 whitespace-nowrap"
+                style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                title="Customize your early (safe) and late (danger) timing tolerance rules">
+          <span>🎯 Rules:</span>
+          <span id="rulesSummaryLabel" class="mono font-semibold" style="color: var(--gold);">-20s / +3s</span>
+        </button>
 
-        <button onclick="toggleRosterModal()" class="px-2.5 py-1.5 rounded text-xs"
+        <button onclick="toggleCheatSheetModal()" class="px-2 py-1.5 rounded text-xs whitespace-nowrap"
+                style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-bright); cursor: pointer;"
+                title="Summoner Spell Cooldown & Haste Cheat Sheet">
+          📖 Cheat Sheet
+        </button>
+
+        <button onclick="toggleRosterModal()" class="px-2 py-1.5 rounded text-xs whitespace-nowrap"
                 style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
                 title="Customize your 5-man team gamer tags and timer format preference">
           ⚙️ Team
         </button>
 
-        <button id="btnNext" onclick="manualNext()" class="px-3 py-1.5 rounded text-xs font-medium hidden"
+        <button id="btnNext" onclick="manualNext()" class="px-2.5 py-1.5 rounded text-xs font-medium hidden whitespace-nowrap"
                 style="background: #131E32; border: 1px solid #2A3A54; color: var(--text-bright); cursor: pointer;"
                 title="Skip to next ping/fight immediately (Shortcut: Space)">
-          ⏭ Next <span class="key-cap ml-1">Space</span>
+          ⏭ Next <span class="key-cap ml-0.5">Space</span>
         </button>
-        <button id="btnStart" onclick="toggleGame()" class="px-4 py-1.5 rounded text-xs font-semibold tracking-wide"
+        <button id="btnStart" onclick="toggleGame()" class="px-3.5 py-1.5 rounded text-xs font-semibold tracking-wide whitespace-nowrap"
                 style="background: var(--gold); color: var(--bg-dark); border: none; cursor: pointer;">
           START
         </button>
-        <button onclick="resetGame()" class="px-3 py-1.5 rounded text-xs"
+        <button onclick="resetGame()" class="px-2.5 py-1.5 rounded text-xs whitespace-nowrap"
                 style="background: transparent; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
                 title="Roll a new 5v5 champion draft and reset session stats">
           NEW DRAFT
@@ -318,31 +368,33 @@
       </aside>
 
       <!-- CENTER: Authentic In-Game Chat Feed OR 60s Math Sprint -->
-      <main class="flex-1 flex flex-col rift-backdrop relative">
+      <main class="flex-1 flex flex-col min-h-0 overflow-hidden rift-backdrop relative">
 
-        <!-- Sub-banner: Spell Level Progression + Status -->
-        <div class="px-5 py-2 flex items-center justify-between gap-3 text-xs"
+        <!-- Sub-banner: Spell Level Progression + Haste Toggle + Status -->
+        <div class="px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0"
              style="background: rgba(1, 10, 19, 0.78); border-bottom: 1px solid var(--border-gold);">
           <div class="flex items-center gap-2 shrink-0">
             <span class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--gold-dim);">Spells:</span>
             <div class="flex items-center gap-1 p-0.5 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
-              <button id="lvl-1" onclick="setSpellLevel(1)" class="mode-btn active" style="padding: 3px 8px;" title="Level 1: Flash (5:00) & Teleport (5:00)">
-                Lvl 1: 5m (F / TP)
+              <button id="lvl-1" onclick="setSpellLevel(1)" class="mode-btn active" style="padding: 3px 8px;" title="Level 1 (Core): 5:00 spells — Flash & Teleport">
+                Lvl 1: Core 5m (F / TP)
               </button>
-              <button id="lvl-2" onclick="setSpellLevel(2)" class="mode-btn" style="padding: 3px 8px;" title="Level 2: Adds 4:00 spells (Ghost, Heal)">
-                Lvl 2: +4m (Gh / Heal)
+              <button id="lvl-2" onclick="setSpellLevel(2)" class="mode-btn" style="padding: 3px 8px;" title="Level 2 (Meta): Adds 4:00 spells — Heal, Exhaust, Cleanse, Ghost (+ Hecarim/Olaf Ghost Jg)">
+                Lvl 2: Meta +4m (Cln / Exh / Gh / Heal)
               </button>
-              <button id="lvl-3" onclick="setSpellLevel(3)" class="mode-btn" style="padding: 3px 8px;" title="Level 3: Adds 3:00 spells (Ignite, Barrier)">
-                Lvl 3: +3m (Ign / Bar)
-              </button>
-              <button id="lvl-4" onclick="setSpellLevel(4)" class="mode-btn" style="padding: 3px 8px;" title="Level 4: Adds 3:30 spells (Exhaust, Cleanse)">
-                Lvl 4: +3:30 (Exh / Cln)
+              <button id="lvl-3" onclick="setSpellLevel(3)" class="mode-btn" style="padding: 3px 8px;" title="Level 3 (All): Unlocks 3:00 Barrier (ADC default) & Ignite (Mid/Sup/Top)">
+                Lvl 3: All +3m (Bar / Ign)
               </button>
             </div>
+            <button id="hasteToggleBtn" onclick="toggleHasteEnabled()" class="mode-btn"
+                    style="padding: 3px 9px; border: 1px solid var(--border-gold); background: var(--bg-dark);"
+                    title="Enable Cosmic Insight (+18 Haste) & Ionian Boots (+10 Haste) on enemy scoreboard">
+              🌀 Haste: OFF
+            </button>
           </div>
 
           <div id="modeDesc" class="truncate text-[11px]" style="color: var(--text-light);">
-            Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)
+            Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">1945mid tp</code> / <code class="mono" style="color:var(--gold);">1945midtp</code>)
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
@@ -401,9 +453,94 @@
           </div>
         </div>
 
+        <!-- Cosmic Insight & Ionian Boots Quiz View (Hidden unless in 'quiz' mode) -->
+        <div id="hasteQuizView" class="flex-1 flex flex-col items-center justify-center p-6 hidden overflow-y-auto">
+          <div class="w-full max-w-lg p-6 rounded-xl text-center space-y-4"
+               style="background: rgba(9, 18, 32, 0.94); border: 1px solid var(--border-highlight); box-shadow: 0 12px 32px rgba(0,0,0,0.6);">
+            <div class="flex items-center justify-between text-xs uppercase tracking-wider" style="color: var(--text-light);">
+              <span>🎓 Cosmic Insight &amp; Ionian Boots Quiz</span>
+              <div class="flex items-center gap-2">
+                <button onclick="toggleCheatSheetModal()" class="px-2 py-0.5 rounded text-[11px] font-semibold normal-case"
+                        style="background: #131F33; border: 1px solid var(--border-gold); color: var(--gold); cursor: pointer;">
+                  📖 Cheat Sheet
+                </button>
+                <span class="mono" style="color: var(--gold);">Best: <strong id="quizBestScore">0</strong></span>
+              </div>
+            </div>
+
+            <!-- Quiz Controls: Question Type & Spell Scope -->
+            <div class="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg text-[11px]"
+                 style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
+              <div class="flex items-center gap-1">
+                <button id="qtype-lookup" onclick="setQuizSubMode('lookup')" class="mode-btn active" style="padding: 3px 8px;">
+                  🎯 Cooldown Lookup
+                </button>
+                <button id="qtype-math" onclick="setQuizSubMode('math')" class="mode-btn" style="padding: 3px 8px;">
+                  ⏱️ Ping + Haste Math
+                </button>
+              </div>
+              <div class="flex items-center gap-1">
+                <button id="qscope-5m" onclick="setQuizScope('5m')" class="mode-btn active" style="padding: 3px 8px;">
+                  Core (F / TP)
+                </button>
+                <button id="qscope-meta" onclick="setQuizScope('meta')" class="mode-btn" style="padding: 3px 8px;">
+                  Meta (+Cln/Exh/Gh/H)
+                </button>
+                <button id="qscope-all" onclick="setQuizScope('all')" class="mode-btn" style="padding: 3px 8px;">
+                  All Spells
+                </button>
+              </div>
+            </div>
+
+            <!-- Question Display -->
+            <div class="p-4 rounded-lg space-y-3" style="background: rgba(4, 10, 18, 0.9); border: 1px solid #162234;">
+              <div id="quizPromptHeader" class="flex items-center justify-center gap-3"></div>
+              <div id="quizMainPrompt" class="mono text-3xl font-bold tracking-wider" style="color: var(--text-bright);">
+                --:--
+              </div>
+              <div id="quizSubPrompt" class="text-xs" style="color: var(--text-light);">
+                Select or type the effective cooldown
+              </div>
+            </div>
+
+            <!-- Multiple Choice Options -->
+            <div id="quizChoices" class="grid grid-cols-2 gap-2.5"></div>
+
+            <!-- Keyboard Input Alternative -->
+            <div class="flex items-center justify-center gap-2 pt-1">
+              <input type="text" id="quizInput" maxlength="5"
+                     class="chat-input w-44 text-center py-2 px-3 rounded-lg mono text-lg font-bold tracking-widest"
+                     placeholder="e.g. 415 or 1145" autocomplete="off" spellcheck="false" />
+              <button onclick="submitQuizInput()" class="px-4 py-2 rounded-lg text-xs font-semibold"
+                      style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
+                Check (Enter)
+              </button>
+            </div>
+
+            <!-- Feedback Banner -->
+            <div id="quizFeedback" class="mono text-xs min-h-[20px] font-semibold"></div>
+
+            <!-- Stats Footer -->
+            <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border-gold);">
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Correct</div>
+                <div id="quizScore" class="mono text-xl font-bold" style="color: var(--correct);">0</div>
+              </div>
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Streak</div>
+                <div id="quizStreak" class="mono text-xl font-bold" style="color: var(--gold);">0</div>
+              </div>
+              <div>
+                <div class="text-[11px]" style="color: var(--text-light);">Accuracy</div>
+                <div id="quizAcc" class="mono text-xl font-bold" style="color: var(--text-bright);">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- League In-Game Chat Stream -->
-        <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-end" id="chatFeedWrapper">
-          <div id="eventArea" class="lol-chat-feed space-y-0.5 overflow-y-auto max-h-full pr-2">
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col" id="chatFeedWrapper">
+          <div id="eventArea" class="lol-chat-feed space-y-0.5 mt-auto pr-2">
             <!-- Welcome screen inside the chat area -->
             <div id="welcome" class="my-auto py-6 text-center max-w-lg mx-auto" style="text-shadow: none;">
               <div class="text-2xl mb-1.5 font-semibold" style="color: var(--gold);">⚡ Competitive Summoner Spell Trainer</div>
@@ -428,7 +565,7 @@
                   </div>
                   <div class="mt-1 pt-1" style="border-top: 1px solid #142030;">
                     <span style="color: var(--lol-timestamp);">06:38</span>
-                    <span style="color: var(--lol-ally);">V1dde (Jinx):</span>
+                    <span style="color: var(--lol-ally);">V1dde (Mid):</span>
                     <span style="color: var(--text-bright);">750jg 1135ad</span>
                   </div>
                 </div>
@@ -447,7 +584,7 @@
         </div>
 
         <!-- Bottom Chat Input Bar -->
-        <div id="chatContainer" style="background: #060C14; border-top: 1px solid var(--border-gold);">
+        <div id="chatContainer" class="shrink-0" style="background: #060C14; border-top: 1px solid var(--border-gold);">
           <!-- Clipboard helper bar -->
           <div class="px-5 py-1.5 flex items-center justify-between text-xs"
                style="background: #04080E; border-bottom: 1px solid #101824;">
@@ -467,8 +604,8 @@
           </div>
 
           <!-- Input row (hidden until Enter) -->
-          <div id="chatRow" class="px-5 py-2.5 hidden">
-            <div class="flex items-center gap-2.5">
+          <div id="chatRow" class="px-5 hidden">
+            <div class="flex items-center gap-2.5 w-full" style="height: 58px;">
               <!-- Live inline clock right next to chat input so eyes stay focused here! -->
               <span id="inlineChatClock" class="mono text-xs px-2 py-1 rounded font-bold"
                     style="background: #0D1726; border: 1px solid #1E2E46; color: var(--gold);"
@@ -478,14 +615,16 @@
               <span class="text-xs font-semibold" style="color: var(--lol-ally);">[Party]</span>
               <input type="text" id="chatInput"
                      class="chat-input flex-1 px-3 py-2 rounded mono"
-                     placeholder="Ctrl+V to paste list, remove expired, add new..."
+                     placeholder="1945mid tp · 620top · Ctrl+V to paste..."
                      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
             </div>
           </div>
 
-          <!-- Hint bar -->
-          <div id="chatHint" class="text-center py-2 text-xs" style="color: #465264;">
-            Press <span class="key-cap">Enter</span> to open chat · <span class="key-cap">Space</span> for next event
+          <!-- Hint bar (exact same fixed height so opening chat never shifts/covers pings!) -->
+          <div id="chatHint" class="text-xs" style="color: #465264;">
+            <div class="flex items-center justify-center" style="height: 58px;">
+              Press <span class="key-cap mx-1">Enter</span> to open chat · <span class="key-cap mx-1">Space</span> for next event
+            </div>
           </div>
         </div>
       </main>
@@ -623,6 +762,117 @@
         </div>
       </div>
     </div>
+
+    <!-- ========== TIMING RULES & STRICTNESS MODAL ========== -->
+    <div id="rulesModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+         style="background: rgba(1, 8, 16, 0.84);">
+      <div class="w-full max-w-md rounded-lg p-5 space-y-4"
+           style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.78);">
+        <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
+          <span class="text-sm font-bold" style="color: var(--gold);">🎯 Custom Timing Rules &amp; Strictness</span>
+          <button onclick="toggleRulesModal()" class="text-xs px-2 py-0.5 rounded" style="color: var(--text-light); cursor: pointer;">✕</button>
+        </div>
+
+        <div class="text-xs leading-relaxed p-3 rounded" style="background: rgba(4, 10, 18, 0.88); border: 1px solid #162234; color: var(--text-light);">
+          Timing a spell <strong style="color: var(--correct);">early (lower timestamp)</strong> is safe in real games—especially if your teammate pinged late. Timing a spell <strong style="color: var(--wrong);">late</strong> gets your team killed! Set your exact custom leeway below.
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="space-y-1.5 text-xs">
+          <div class="font-semibold" style="color: var(--text-bright);">Quick Presets</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" onclick="applyRulesPreset(30, 5)" class="px-2.5 py-1.5 rounded text-left text-[11px]"
+                    style="background:#0C1626; border:1px solid #1F2E46; color:var(--text-bright); cursor:pointer;">
+              <div class="font-semibold" style="color:var(--correct);">Generous Safe</div>
+              <div class="mono text-[10px]" style="color:var(--text-light);">-30s early / +5s late</div>
+            </button>
+            <button type="button" onclick="applyRulesPreset(20, 3)" class="px-2.5 py-1.5 rounded text-left text-[11px]"
+                    style="background:#0C1626; border:1px solid var(--border-highlight); color:var(--text-bright); cursor:pointer;">
+              <div class="font-semibold" style="color:var(--gold);">Standard Pro (Default)</div>
+              <div class="mono text-[10px]" style="color:var(--text-light);">-20s early / +3s late</div>
+            </button>
+            <button type="button" onclick="applyRulesPreset(10, 0)" class="px-2.5 py-1.5 rounded text-left text-[11px]"
+                    style="background:#0C1626; border:1px solid #1F2E46; color:var(--text-bright); cursor:pointer;">
+              <div class="font-semibold" style="color:var(--warn);">Strict</div>
+              <div class="mono text-[10px]" style="color:var(--text-light);">-10s early / 0s late</div>
+            </button>
+            <button type="button" onclick="applyRulesPreset(0, 0)" class="px-2.5 py-1.5 rounded text-left text-[11px]"
+                    style="background:#0C1626; border:1px solid #1F2E46; color:var(--text-bright); cursor:pointer;">
+              <div class="font-semibold" style="color:var(--wrong);">Exact Second</div>
+              <div class="mono text-[10px]" style="color:var(--text-light);">0s early / 0s late</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Inputs -->
+        <div class="space-y-3 pt-2 text-xs" style="border-top: 1px solid var(--border-gold);">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-semibold" style="color: var(--correct);">Early Leeway (Safe Side)</div>
+              <div class="text-[11px]" style="color: var(--text-light);">Max seconds earlier allowed (0–60s)</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input type="number" id="earlyTolInput" min="0" max="60" value="20"
+                     class="w-20 px-2.5 py-1.5 rounded mono text-center font-bold"
+                     style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-bright); outline: none;" />
+              <span class="mono" style="color: var(--text-light);">sec</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-semibold" style="color: var(--wrong);">Late Leeway (Danger Side)</div>
+              <div class="text-[11px]" style="color: var(--text-light);">Max seconds late allowed for rounding (0–30s)</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input type="number" id="lateTolInput" min="0" max="30" value="3"
+                     class="w-20 px-2.5 py-1.5 rounded mono text-center font-bold"
+                     style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-bright); outline: none;" />
+              <span class="mono" style="color: var(--text-light);">sec</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2" style="border-top: 1px solid var(--border-gold);">
+          <button onclick="applyRulesPreset(20, 3)" class="px-3 py-1.5 rounded text-xs"
+                  style="background: transparent; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;">
+            Reset Default
+          </button>
+          <button onclick="saveCustomRules()" class="px-4 py-1.5 rounded text-xs font-semibold"
+                  style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
+            Save Rules
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== SPELL COOLDOWN & HASTE CHEAT SHEET MODAL ========== -->
+    <div id="cheatSheetModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+         style="background: rgba(1, 8, 16, 0.86);">
+      <div class="w-full max-w-3xl rounded-lg p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+           style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.8);">
+        <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
+          <span class="text-sm font-bold" style="color: var(--gold);">📖 Summoner Spell Cooldown &amp; Haste Cheat Sheet (League Wiki Accurate)</span>
+          <button onclick="toggleCheatSheetModal()" class="text-xs px-2 py-0.5 rounded" style="color: var(--text-light); cursor: pointer;">✕</button>
+        </div>
+
+        <div id="cheatSheetBody" class="space-y-4 text-xs"></div>
+
+        <div class="flex items-center justify-between pt-2" style="border-top: 1px solid var(--border-gold);">
+          <span class="text-[11px]" style="color: var(--text-light);">Large numbers show Pro Mental Math · Small numbers show Exact Wiki Seconds</span>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleCheatSheetModal(); setMode('quiz');" class="px-3.5 py-1.5 rounded text-xs font-semibold"
+                    style="background: rgba(200, 155, 60, 0.16); border: 1px solid var(--gold); color: var(--gold); cursor: pointer;">
+              🎓 Practice in Haste Quiz →
+            </button>
+            <button onclick="toggleCheatSheetModal()" class="px-4 py-1.5 rounded text-xs font-semibold"
+                    style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -638,27 +888,26 @@ const ROLE_SVGS = {
 };
 
 const ROLES = [
-  { id:'top', keys:['top','t'],                   tag:'TOP', label:'Top',     c:'#A78BFA' },
-  { id:'jg',  keys:['jg','jng','jungle','j'],     tag:'JNG', label:'Jungle',  c:'#34D399' },
-  { id:'mid', keys:['mid','m'],                   tag:'MID', label:'Mid',     c:'#F87171' },
-  { id:'ad',  keys:['ad','adc','bot','b'],        tag:'ADC', label:'Bot',     c:'#60A5FA' },
-  { id:'sup', keys:['sup','supp','support','s'],  tag:'SUP', label:'Support', c:'#22D3EE' },
+  { id:'top', keys:['top','toplane','t'],                  tag:'TOP', label:'Top',     c:'#A78BFA' },
+  { id:'jg',  keys:['jg','jgl','jng','jung','jungle','j'], tag:'JNG', label:'Jungle',  c:'#34D399' },
+  { id:'mid', keys:['mid','midlane','middle','md','m'],    tag:'MID', label:'Mid',     c:'#F87171' },
+  { id:'ad',  keys:['ad','adc','bot','botlane','b'],       tag:'ADC', label:'Bot',     c:'#60A5FA' },
+  { id:'sup', keys:['sup','supp','support','sp','s'],      tag:'SUP', label:'Support', c:'#22D3EE' },
 ];
 
-// Summoner Spell Catalog organized by Progressive Levels:
-//   Level 1: 5:00 CDs (Flash, Teleport)
-//   Level 2: +4:00 CDs (Ghost, Heal)
-//   Level 3: +3:00 CDs (Ignite, Barrier)
-//   Level 4: +3:30 CDs (Exhaust, Cleanse)
+// Summoner Spell Catalog (Matched to Official League of Legends Wiki + Competitive Meta Priority):
+//   Priority 1 (Core 5:00):     Flash, Teleport
+//   Priority 2 (Teamfight 4:00): Cleanse, Exhaust > Ghost, Heal
+//   Priority 3 (Rare 3:00):     Ignite, Barrier
 const SPELLS = {
-  flash:   { id:'flash',   name:'Flash',    short:'',    cd:300, level:1, aliases:['f','fl','flash'],          icon:'⚡', color:'#F5D042', bg:'linear-gradient(135deg, #F5D042 0%, #C88A1E 100%)', textDark:true },
-  tp:      { id:'tp',      name:'Teleport', short:'tp',  cd:300, level:1, aliases:['tp','teleport','tele'],    icon:'🌀', color:'#C084FC', bg:'linear-gradient(135deg, #A855F7 0%, #6B21A8 100%)', textDark:false },
-  ghost:   { id:'ghost',   name:'Ghost',    short:'gh',  cd:240, level:2, aliases:['g','gh','ghost'],          icon:'👻', color:'#38BDF8', bg:'linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)', textDark:true },
-  heal:    { id:'heal',    name:'Heal',     short:'h',   cd:240, level:2, aliases:['h','heal'],                icon:'💚', color:'#4ADE80', bg:'linear-gradient(135deg, #4ADE80 0%, #16A34A 100%)', textDark:true },
-  ignite:  { id:'ignite',  name:'Ignite',   short:'ign', cd:180, level:3, aliases:['i','ig','ign','ignite'],   icon:'🔥', color:'#FB923C', bg:'linear-gradient(135deg, #FB923C 0%, #EA580C 100%)', textDark:true },
-  barrier: { id:'barrier', name:'Barrier',  short:'bar', cd:180, level:3, aliases:['ba','bar','barrier'],      icon:'🛡️', color:'#FACC15', bg:'linear-gradient(135deg, #FACC15 0%, #CA8A04 100%)', textDark:true },
-  exhaust: { id:'exhaust', name:'Exhaust',  short:'exh', cd:210, level:4, aliases:['ex','exh','exhaust'],      icon:'⏳', color:'#FBBF24', bg:'linear-gradient(135deg, #FBBF24 0%, #B45309 100%)', textDark:true },
-  cleanse: { id:'cleanse', name:'Cleanse',  short:'cln', cd:210, level:4, aliases:['c','cl','cln','cleanse'],  icon:'✨', color:'#67E8F9', bg:'linear-gradient(135deg, #67E8F9 0%, #0891B2 100%)', textDark:true },
+  flash:   { id:'flash',   name:'Flash',    short:'',    cd:300, level:1, compTier:1, baseWeight:10.0, ddSpell:'SummonerFlash',    aliases:['f','fl','fla','flash'],                  icon:'⚡', color:'#F5D042', bg:'linear-gradient(135deg, #F5D042 0%, #C88A1E 100%)', textDark:true },
+  tp:      { id:'tp',      name:'Teleport', short:'tp',  cd:300, level:1, compTier:1, baseWeight:7.5,  ddSpell:'SummonerTeleport', aliases:['tp','tele','teleport'],                  icon:'🌀', color:'#C084FC', bg:'linear-gradient(135deg, #A855F7 0%, #6B21A8 100%)', textDark:false },
+  cleanse: { id:'cleanse', name:'Cleanse',  short:'cln', cd:240, level:2, compTier:2, baseWeight:5.5,  ddSpell:'SummonerBoost',    aliases:['c','cl','cln','clean','cleanse','qss'],  icon:'✨', color:'#67E8F9', bg:'linear-gradient(135deg, #67E8F9 0%, #0891B2 100%)', textDark:true },
+  exhaust: { id:'exhaust', name:'Exhaust',  short:'exh', cd:240, level:2, compTier:2, baseWeight:5.0,  ddSpell:'SummonerExhaust',  aliases:['e','ex','exh','exha','exhaust'],         icon:'⏳', color:'#FBBF24', bg:'linear-gradient(135deg, #FBBF24 0%, #B45309 100%)', textDark:true },
+  ghost:   { id:'ghost',   name:'Ghost',    short:'gh',  cd:240, level:2, compTier:2, baseWeight:3.2,  ddSpell:'SummonerHaste',    aliases:['g','gh','gho','ghost'],                  icon:'👻', color:'#38BDF8', bg:'linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)', textDark:true },
+  heal:    { id:'heal',    name:'Heal',     short:'h',   cd:240, level:2, compTier:2, baseWeight:3.0,  ddSpell:'SummonerHeal',     aliases:['h','he','heal'],                         icon:'💚', color:'#4ADE80', bg:'linear-gradient(135deg, #4ADE80 0%, #16A34A 100%)', textDark:true },
+  ignite:  { id:'ignite',  name:'Ignite',   short:'ign', cd:180, level:3, compTier:3, baseWeight:1.0,  ddSpell:'SummonerDot',      aliases:['i','ig','ign','ignite'],                 icon:'🔥', color:'#FB923C', bg:'linear-gradient(135deg, #FB923C 0%, #EA580C 100%)', textDark:true },
+  barrier: { id:'barrier', name:'Barrier',  short:'bar', cd:180, level:3, compTier:3, baseWeight:0.8,  ddSpell:'SummonerBarrier',  aliases:['ba','bar','barr','barrier'],             icon:'🛡️', color:'#FACC15', bg:'linear-gradient(135deg, #FACC15 0%, #CA8A04 100%)', textDark:true },
 };
 
 const SPELL_ALIAS_MAP = {};
@@ -666,18 +915,128 @@ Object.values(SPELLS).forEach(sp => {
   sp.aliases.forEach(a => { SPELL_ALIAS_MAP[a] = sp.id; });
 });
 
+// ===================== RIOT DATA DRAGON CDN & HASTE TABLES =====================
+let ddVersion = '15.3.1';
+const CHAMP_DDRAGON_MAP = {
+  'Xin Zhao': 'XinZhao',
+  'Nunu & Willump': 'Nunu',
+  'Lee Sin': 'LeeSin',
+  "Rek'Sai": 'RekSai',
+  'Jarvan IV': 'JarvanIV',
+  'LeBlanc': 'Leblanc',
+  "Kai'Sa": 'Kaisa',
+  'KSante': 'KSante',
+};
+
+function getChampIconUrl(champ) {
+  const id = CHAMP_DDRAGON_MAP[champ] || champ.replace(/[^a-zA-Z]/g, '');
+  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${id}.png`;
+}
+
+function getSpellIconUrl(spellId) {
+  const sp = SPELLS[spellId] || SPELLS.flash;
+  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/spell/${sp.ddSpell}.png`;
+}
+
+const COSMIC_ICON_URL = 'https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/CosmicInsight/CosmicInsight.png';
+function getBootsIconUrl() {
+  return `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/item/3158.png`;
+}
+
+const HASTE_META = {
+  none:   { key:'none',   haste:0,  label:'No Haste (0)',         short:'Base' },
+  boots:  { key:'boots',  haste:10, label:'Ionian Boots (+10)',   short:'Boots (+10)' },
+  cosmic: { key:'cosmic', haste:18, label:'Cosmic Insight (+18)', short:'Cosmic (+18)' },
+  both:   { key:'both',   haste:28, label:'Cosmic + Boots (+28)', short:'Cosmic+Boots (+28)' },
+};
+
+// Clean pro mental-math numbers alongside exact Wiki values (Cooldown = Base / (1 + Haste/100))
+const HASTE_TABLE = {
+  300: {
+    none:   { cleanCd:300, altCleanCd:300, exactCd:300, exactStr:'5:00' },
+    boots:  { cleanCd:270, altCleanCd:270, exactCd:273, exactStr:'4:32.7' },
+    cosmic: { cleanCd:255, altCleanCd:250, exactCd:254, exactStr:'4:14.2' },
+    both:   { cleanCd:230, altCleanCd:235, exactCd:234, exactStr:'3:54.4' },
+  },
+  240: {
+    none:   { cleanCd:240, altCleanCd:240, exactCd:240, exactStr:'4:00' },
+    boots:  { cleanCd:220, altCleanCd:215, exactCd:218, exactStr:'3:38.2' },
+    cosmic: { cleanCd:200, altCleanCd:205, exactCd:203, exactStr:'3:23.4' },
+    both:   { cleanCd:185, altCleanCd:190, exactCd:188, exactStr:'3:07.5' },
+  },
+  180: {
+    none:   { cleanCd:180, altCleanCd:180, exactCd:180, exactStr:'3:00' },
+    boots:  { cleanCd:165, altCleanCd:160, exactCd:164, exactStr:'2:43.6' },
+    cosmic: { cleanCd:150, altCleanCd:155, exactCd:153, exactStr:'2:32.5' },
+    both:   { cleanCd:140, altCleanCd:140, exactCd:141, exactStr:'2:20.6' },
+  },
+};
+
+function getEnemyHasteState(enemy) {
+  if (!hasteEnabled || !enemy) return 'none';
+  if (enemy.hasCosmic && enemy.hasBoots) return 'both';
+  if (enemy.hasCosmic) return 'cosmic';
+  if (enemy.hasBoots) return 'boots';
+  return 'none';
+}
+
+function getEffectiveSpellTiming(enemy, spellId) {
+  const sp = SPELLS[spellId] || SPELLS.flash;
+  const baseCd = sp.cd;
+  const hasteState = getEnemyHasteState(enemy);
+  const row = (HASTE_TABLE[baseCd] && HASTE_TABLE[baseCd][hasteState]) || HASTE_TABLE[300].none;
+  return {
+    baseCd,
+    hasteState,
+    hasteVal: HASTE_META[hasteState].haste,
+    cleanCd: row.cleanCd,
+    altCleanCd: row.altCleanCd,
+    exactCd: row.exactCd,
+    exactStr: row.exactStr,
+  };
+}
+
+fetch('https://ddragon.leagueoflegends.com/api/versions.json')
+  .then(r => r.ok ? r.json() : null)
+  .then(versions => {
+    if (Array.isArray(versions) && versions[0]) {
+      ddVersion = versions[0];
+      if (typeof renderBoard === 'function') renderBoard();
+    }
+  })
+  .catch(() => {});
+
 const ROLE_SECONDARY_POOLS = {
-  top: ['tp', 'ghost', 'ignite'],
-  jg:  ['ghost', 'ignite'],
-  mid: ['tp', 'ignite', 'ghost', 'barrier', 'cleanse'],
-  ad:  ['heal', 'barrier', 'cleanse', 'ghost', 'exhaust'],
-  sup: ['exhaust', 'ignite', 'heal'],
+  top: [
+    { id: 'tp', w: 80 },
+    { id: 'ghost', w: 12 },
+    { id: 'ignite', w: 8 },
+  ],
+  jg: [], // Junglers carry Smite (99.9% Flash, rare Ghost on Hecarim/Olaf)
+  mid: [
+    { id: 'tp', w: 78 },
+    { id: 'ghost', w: 12 },
+    { id: 'ignite', w: 6 },
+    { id: 'cleanse', w: 4 },
+  ],
+  ad: [
+    { id: 'barrier', w: 44 },
+    { id: 'exhaust', w: 20 },
+    { id: 'cleanse', w: 16 },
+    { id: 'ghost', w: 12 },
+    { id: 'heal', w: 8 },
+  ],
+  sup: [
+    { id: 'heal', w: 75 },
+    { id: 'ignite', w: 18 },
+    { id: 'exhaust', w: 7 },
+  ],
 };
 
 const CHAMPS = {
   top:['Tryndamere','Ornn','Darius','Fiora','Camille','Jax','Riven','Aatrox','Renekton','Gwen','KSante'],
-  jg: ['Xin Zhao','Nunu & Willump','Lee Sin','Vi','Elise','Rek\'Sai','Jarvan IV','Viego','Graves','Nidalee','Sejuani'],
-  mid:['Ahri','Syndra','Orianna','Zed','LeBlanc','Viktor','Azir','Akali','Corki','Lissandra','Taliyah','Yone'],
+  jg: ['Xin Zhao','Nunu & Willump','Lee Sin','Vi','Elise','Rek\'Sai','Jarvan IV','Viego','Graves','Nidalee','Sejuani','Hecarim','Olaf'],
+  mid:['Ahri','Syndra','Orianna','Zed','LeBlanc','Viktor','Azir','Akali','Corki','Lissandra','Taliyah','Yone','Ryze','Locke'],
   ad: ['Yunara','Kai\'Sa','Jinx','Ezreal','Caitlyn','Jhin','Aphelios','Varus','Xayah','Ashe','Lucian'],
   sup:['Karma','Thresh','Nautilus','Leona','Lulu','Braum','Rakan','Alistar','Nami','Rell','Bard'],
 };
@@ -725,7 +1084,7 @@ let allyRoster = [
 
 let formatStyle = 'timeFirst'; // 'timeFirst' (2025top) | 'roleFirst' (top2025)
 let randomizeNamesEachDraft = true;
-let spellLevel = 1; // 1: 5m (F/TP) | 2: +4m (Gh/Heal) | 3: +3m (Ign/Bar) | 4: +3:30 (Exh/Cln)
+let spellLevel = 1; // 1: 5m (F/TP) | 2: +4m (Gh/Heal/Exh/Cln) | 3: +3m (Ign/Bar)
 
 const FIGHT_SCENARIOS = [
   { name: 'Bot 2v2 Skirmish',        roles: ['ad', 'sup'] },
@@ -746,21 +1105,25 @@ function loadSavedSettings() {
       allyRoster = saved.allyRoster;
     }
     if (saved.formatStyle) formatStyle = saved.formatStyle;
-    if (typeof saved.spellLevel === 'number' && saved.spellLevel >= 1 && saved.spellLevel <= 4) {
-      spellLevel = saved.spellLevel;
+    if (typeof saved.spellLevel === 'number') {
+      spellLevel = Math.min(3, Math.max(1, saved.spellLevel));
+    }
+    if (typeof saved.hasteEnabled === 'boolean') {
+      hasteEnabled = saved.hasteEnabled;
     }
     if (typeof saved.randomizeNamesEachDraft === 'boolean') {
       randomizeNamesEachDraft = saved.randomizeNamesEachDraft;
       const tog = document.getElementById('randomNamesEachDraftToggle');
       if (tog) tog.checked = randomizeNamesEachDraft;
     }
-    if (typeof saved.earlyToleranceSec === 'number') {
-      earlyToleranceSec = saved.earlyToleranceSec;
-      const sel = document.getElementById('toleranceSelect');
-      if (sel) sel.value = String(earlyToleranceSec);
+    if (saved.rulesConfigured) {
+      rulesConfigured = true;
+      if (typeof saved.earlyToleranceSec === 'number') earlyToleranceSec = saved.earlyToleranceSec;
+      if (typeof saved.lateToleranceSec === 'number') lateToleranceSec = saved.lateToleranceSec;
     }
     if (typeof saved.bestStreak === 'number') bestStreakAllTime = saved.bestStreak;
     if (typeof saved.mathBest === 'number') mathBestAllTime = saved.mathBest;
+    if (typeof saved.quizBest === 'number') quizBestAllTime = saved.quizBest;
   } catch (e) {}
 }
 
@@ -770,10 +1133,14 @@ function saveSettings() {
       allyRoster,
       formatStyle,
       spellLevel,
+      hasteEnabled,
       randomizeNamesEachDraft,
+      rulesConfigured,
       earlyToleranceSec,
+      lateToleranceSec,
       bestStreak: bestStreakAllTime,
       mathBest: mathBestAllTime,
+      quizBest: quizBestAllTime,
     }));
   } catch (e) {}
 }
@@ -798,10 +1165,14 @@ function rollRandomTeammateNames() {
 }
 
 // ===================== STATE =====================
-let currentMode = 'instant'; // 'instant' | 'burst' | 'rapid' | 'math'
-let earlyToleranceSec = 10;
+let currentMode = 'instant'; // 'instant' | 'burst' | 'rapid' | 'math' | 'quiz'
+let earlyToleranceSec = 20;
+let lateToleranceSec = 3;
+let rulesConfigured = false;
+let hasteEnabled = false;
 let bestStreakAllTime = 0;
 let mathBestAllTime = 0;
+let quizBestAllTime = 0;
 let savedClipboard = '';
 let pressedCtrlCThisTurn = false;
 
@@ -817,10 +1188,39 @@ let M = {
   reactions: [],
 };
 
+// Haste Quiz state
+let Q = {
+  subMode: 'lookup', // 'lookup' | 'math'
+  scope: '5m',       // '5m' | 'all'
+  score: 0,
+  total: 0,
+  streak: 0,
+  locked: false,
+  nextTimeout: null,
+  question: null,
+};
+
 loadSavedSettings();
 let G = createInitialState(false);
 
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function pickWeighted(items, weightFn) {
+  if (!items || items.length === 0) return null;
+  let total = 0;
+  const weights = items.map(it => {
+    const w = Math.max(0, weightFn(it));
+    total += w;
+    return w;
+  });
+  if (total <= 0) return pick(items);
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
 
 function formatTimerToken(timeSec, roleId, spellId = 'flash') {
   const sp = SPELLS[spellId] || SPELLS.flash;
@@ -830,11 +1230,42 @@ function formatTimerToken(timeSec, roleId, spellId = 'flash') {
     : `${fmtCompact(timeSec)}${roleId}${suffix}`;
 }
 
-function getSecondarySpellForRole(roleId, level) {
-  const pool = (ROLE_SECONDARY_POOLS[roleId] || []).filter(id => SPELLS[id].level <= level);
-  if (pool.length === 0) return null;
-  // At higher levels, still keep a realistic mix (prioritize role's signature spells)
-  return pick(pool);
+function getPrimarySpellForRole(roleId, level, champ) {
+  if (roleId === 'jg' && level >= 2 && (champ === 'Hecarim' || champ === 'Olaf') && Math.random() < 0.65) {
+    return 'ghost';
+  }
+  return 'flash';
+}
+
+function getSecondarySpellForRole(roleId, level, champ = '') {
+  let pool = ROLE_SECONDARY_POOLS[roleId] || [];
+  if (roleId === 'mid' && level >= 2) {
+    if (champ === 'Ryze' || champ === 'Taliyah' || champ === 'Viktor') {
+      pool = [{ id: 'tp', w: 55 }, { id: 'ghost', w: 38 }, { id: 'cleanse', w: 7 }];
+    } else if (champ === 'Locke' || champ === 'Zed' || champ === 'LeBlanc' || champ === 'Akali') {
+      pool = [{ id: 'tp', w: 60 }, { id: 'ignite', w: 32 }, { id: 'cleanse', w: 8 }];
+    }
+  }
+  const filtered = pool.filter(entry => SPELLS[entry.id] && SPELLS[entry.id].level <= level);
+  if (filtered.length === 0) return null;
+  const chosen = pickWeighted(filtered, entry => entry.w);
+  return chosen ? chosen.id : null;
+}
+
+function assignRealisticEnemyHaste(enemies) {
+  let count = 0;
+  enemies.forEach(e => {
+    // Support/Mid/Top commonly run Cosmic Insight or Lucidity Boots
+    const cosmicChance = (e.role.id === 'sup' || e.role.id === 'mid' || e.role.id === 'jg') ? 0.45 : 0.30;
+    const bootsChance  = (e.role.id === 'sup' || e.role.id === 'mid' || e.role.id === 'top') ? 0.35 : 0.20;
+    e.hasCosmic = Math.random() < cosmicChance;
+    e.hasBoots  = Math.random() < bootsChance;
+    if (e.hasCosmic || e.hasBoots) count++;
+  });
+  if (count === 0 && enemies.length > 0) {
+    const lucky = pick(enemies);
+    lucky.hasCosmic = true;
+  }
 }
 
 function createInitialState(isNewDraft = true) {
@@ -850,22 +1281,31 @@ function createInitialState(isNewDraft = true) {
     const chosenEnemyName = namePool.length > 0 ? pick(namePool) : 'Enemy';
     usedNames.add(chosenEnemyName);
 
-    const secId = getSecondarySpellForRole(r.id, spellLevel);
+    const champ = pick(CHAMPS[r.id]);
+    const priId = getPrimarySpellForRole(r.id, spellLevel, champ);
+    const secId = getSecondarySpellForRole(r.id, spellLevel, champ);
     const spells = {
-      flash: { id: 'flash', up: true, backAt: 0 },
+      [priId]: { id: priId, up: true, backAt: 0 },
     };
-    if (secId) {
+    if (secId && secId !== priId) {
       spells[secId] = { id: secId, up: true, backAt: 0 };
     }
 
     return {
       role: r,
-      champ: pick(CHAMPS[r.id]),
+      champ,
       gamerTag: chosenEnemyName,
       spells,
+      primaryId: priId,
       secondaryId: secId,
+      hasCosmic: false,
+      hasBoots: false,
     };
   });
+
+  if (hasteEnabled) {
+    assignRealisticEnemyHaste(enemies);
+  }
 
   const allies = allyRoster.map(ap => {
     const enemyChamp = enemies.find(e => e.role.id === ap.roleId)?.champ;
@@ -885,7 +1325,7 @@ function createInitialState(isNewDraft = true) {
     jumpTimeouts: [],
     enemies,
     allies,
-    pings: [],               // { id, enemyIdx, role, champ, allyName, allyChamp, usedAt, correctTime, answeredAt, correct, realMs }
+    pings: [],               // { id, enemyIdx, role, champ, allyName, allyChamp, usedAt, correctTime, cleanTime, altCleanTime, exactTime, hasteState, answeredAt, correct, realMs }
     pingId: 0,
     burstSpawning: false,
     stats: {
@@ -903,14 +1343,206 @@ function createInitialState(isNewDraft = true) {
       msgsWithCtrlC: 0,
     },
     chatOpen: false,
-    activeTimers: [],        // { role, champ, expiresAt, playerTime, droppedOnce }
-    allTimersHistory: [],    // { role, champ, expiresAt, playerTime, cleanedByPlayer }
+    activeTimers: [],        // { role, spellId, champ, expiresAt, cdDuration, playerTime, droppedOnce }
+    allTimersHistory: [],    // { role, spellId, champ, expiresAt, playerTime, cleanedByPlayer }
   };
 }
 
-function updateTolerance(val) {
-  earlyToleranceSec = parseInt(val, 10);
+// ===================== RULES, HASTE TOGGLE & CHEAT SHEET =====================
+function updateRulesSummaryUI() {
+  const lbl = document.getElementById('rulesSummaryLabel');
+  if (lbl) lbl.textContent = `-${earlyToleranceSec}s / +${lateToleranceSec}s`;
+}
+
+function toggleRulesModal() {
+  const modal = document.getElementById('rulesModal');
+  if (!modal) return;
+  const isHidden = modal.classList.contains('hidden');
+  if (isHidden) {
+    document.getElementById('earlyTolInput').value = earlyToleranceSec;
+    document.getElementById('lateTolInput').value = lateToleranceSec;
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+}
+
+function applyRulesPreset(early, late) {
+  document.getElementById('earlyTolInput').value = early;
+  document.getElementById('lateTolInput').value = late;
+  earlyToleranceSec = early;
+  lateToleranceSec = late;
+  rulesConfigured = true;
   saveSettings();
+  updateRulesSummaryUI();
+  document.getElementById('rulesModal').classList.add('hidden');
+}
+
+function saveCustomRules() {
+  const rawEarly = parseInt(document.getElementById('earlyTolInput').value, 10);
+  const rawLate  = parseInt(document.getElementById('lateTolInput').value, 10);
+  earlyToleranceSec = isNaN(rawEarly) ? 20 : Math.min(60, Math.max(0, rawEarly));
+  lateToleranceSec  = isNaN(rawLate)  ? 3  : Math.min(30, Math.max(0, rawLate));
+  rulesConfigured = true;
+  saveSettings();
+  updateRulesSummaryUI();
+  document.getElementById('rulesModal').classList.add('hidden');
+}
+
+function updateHasteToggleUI() {
+  const btn = document.getElementById('hasteToggleBtn');
+  if (!btn) return;
+  if (hasteEnabled) {
+    btn.classList.add('active');
+    btn.textContent = '🌀 Haste: ON (Cosmic/Boots)';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '🌀 Haste: OFF';
+  }
+}
+
+function toggleHasteEnabled() {
+  hasteEnabled = !hasteEnabled;
+  if (hasteEnabled) {
+    const anyActive = G.enemies.some(e => e.hasCosmic || e.hasBoots);
+    if (!anyActive) assignRealisticEnemyHaste(G.enemies);
+  }
+  saveSettings();
+  updateHasteToggleUI();
+  renderBoard();
+}
+
+function toggleEnemyHaste(roleId, type) {
+  const enemy = G.enemies.find(e => e.role.id === roleId);
+  if (!enemy) return;
+  if (!hasteEnabled) {
+    hasteEnabled = true;
+    saveSettings();
+    updateHasteToggleUI();
+  }
+  if (type === 'cosmic') enemy.hasCosmic = !enemy.hasCosmic;
+  if (type === 'boots')  enemy.hasBoots  = !enemy.hasBoots;
+  renderBoard();
+}
+
+function toggleCheatSheetModal() {
+  const modal = document.getElementById('cheatSheetModal');
+  if (!modal) return;
+  const isHidden = modal.classList.contains('hidden');
+  if (isHidden) {
+    renderCheatSheetModal();
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+}
+
+function renderCheatSheetModal() {
+  const body = document.getElementById('cheatSheetBody');
+  if (!body) return;
+
+  const tiers = [
+    {
+      cd: 300,
+      badge: '★ MOST IMPORTANT (Track Every Game)',
+      badgeColor: 'var(--gold)',
+      spells: [SPELLS.flash, SPELLS.tp],
+    },
+    {
+      cd: 240,
+      badge: '⚡ HIGH VALUE IN MID/LATE TEAMFIGHTS (Cln & Exh > Gh & Heal)',
+      badgeColor: '#22D3EE',
+      spells: [SPELLS.cleanse, SPELLS.exhaust, SPELLS.ghost, SPELLS.heal],
+    },
+    {
+      cd: 180,
+      badge: 'LOW PRIORITY (Rarely Timed)',
+      badgeColor: '#64748B',
+      spells: [SPELLS.ignite, SPELLS.barrier],
+    },
+  ];
+
+  const rowsHtml = tiers.map(tier => {
+    const tData = HASTE_TABLE[tier.cd];
+    const spellsHtml = tier.spells.map(sp => `
+      <div class="flex items-center gap-1.5">
+        <div class="w-5 h-5 rounded overflow-hidden shrink-0 flex items-center justify-center" style="background:${sp.bg}; border:1px solid #463714;">
+          <img src="${getSpellIconUrl(sp.id)}" alt="${sp.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span style="display:none; font-size:11px;">${sp.icon}</span>
+        </div>
+        <span class="font-semibold" style="color:var(--text-bright);">${sp.name}</span>
+        <span class="mono text-[10px] px-1 rounded" style="background:#0A1422; color:${sp.color}; border:1px solid #1C293D;">${sp.short || 'none / f'}</span>
+      </div>
+    `).join('');
+
+    const formatCell = (cell, color = 'var(--text-bright)') => {
+      const alt = cell.altCleanCd !== cell.cleanCd ? ` <span class="text-[10px]" style="color:var(--text-light);">/ ${fmt(cell.altCleanCd)}</span>` : '';
+      return `
+        <div class="mono font-bold text-sm" style="color:${color};">${fmt(cell.cleanCd)}${alt}</div>
+        <div class="mono text-[10px]" style="color:#64748B;">Wiki: ${cell.exactStr}</div>
+      `;
+    };
+
+    return `
+      <tr style="border-bottom: 1px solid #162234;">
+        <td class="p-2.5 align-top space-y-1.5">
+          <div class="text-[9.5px] font-bold uppercase tracking-wider mb-1" style="color:${tier.badgeColor};">${tier.badge}</div>
+          ${spellsHtml}
+        </td>
+        <td class="p-2.5 align-middle text-center mono font-bold text-sm" style="color:var(--text-bright);">${fmt(tData.none.cleanCd)}</td>
+        <td class="p-2.5 align-middle text-center">${formatCell(tData.boots, '#60A5FA')}</td>
+        <td class="p-2.5 align-middle text-center">${formatCell(tData.cosmic, '#22D3EE')}</td>
+        <td class="p-2.5 align-middle text-center">${formatCell(tData.both, 'var(--gold)')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="overflow-x-auto rounded-lg" style="border: 1px solid var(--border-gold); background: rgba(4, 10, 18, 0.9);">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr style="background:#0B1524; border-bottom:1px solid var(--border-gold); color:var(--text-light);">
+            <th class="p-2.5 text-[11px] uppercase tracking-wider">Spells &amp; Chat Tags</th>
+            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">Base (0 Haste)</th>
+            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+              <div class="flex items-center justify-center gap-1">
+                <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                <span style="color:#60A5FA;">Boots (+10)</span>
+              </div>
+            </th>
+            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+              <div class="flex items-center justify-center gap-1">
+                <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                <span style="color:#22D3EE;">Cosmic (+18)</span>
+              </div>
+            </th>
+            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+              <div class="flex items-center justify-center gap-1">
+                <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                <span style="color:var(--gold);">Both (+28)</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+      <div class="p-2.5 rounded" style="background:#060E1A; border:1px solid #162234;">
+        <div class="font-semibold mb-0.5" style="color:#22D3EE;">⚡ Flash + Cosmic Insight</div>
+        <div style="color:var(--text-light);">Memorize <strong class="mono" style="color:var(--text-bright);">+4:15</strong> (add 4 min, +15s). Exact Wiki is 4:14.2s.</div>
+      </div>
+      <div class="p-2.5 rounded" style="background:#060E1A; border:1px solid #162234;">
+        <div class="font-semibold mb-0.5" style="color:#60A5FA;">👢 Flash + Ionian Boots</div>
+        <div style="color:var(--text-light);">Memorize <strong class="mono" style="color:var(--text-bright);">+4:30</strong> (2s safe early vs 4:32.7s).</div>
+      </div>
+      <div class="p-2.5 rounded" style="background:#060E1A; border:1px solid #162234;">
+        <div class="font-semibold mb-0.5" style="color:var(--gold);">🔥 Cosmic + Ionian (+28)</div>
+        <div style="color:var(--text-light);">Memorize <strong class="mono" style="color:var(--text-bright);">+3:50</strong> (or +3:55). 4m spells become <strong class="mono" style="color:var(--text-bright);">3:05</strong>.</div>
+      </div>
+    </div>
+  `;
 }
 
 function clearScheduledTimeouts() {
@@ -921,20 +1553,22 @@ function clearScheduledTimeouts() {
 
 // ===================== SPELL LEVEL & MODE SWITCHING =====================
 function setSpellLevel(lvl) {
-  spellLevel = lvl;
+  spellLevel = Math.min(3, Math.max(1, lvl));
   saveSettings();
-  [1, 2, 3, 4].forEach(n => {
+  [1, 2, 3].forEach(n => {
     const btn = document.getElementById('lvl-' + n);
-    if (btn) btn.classList.toggle('active', n === lvl);
+    if (btn) btn.classList.toggle('active', n === spellLevel);
   });
 
-  // Update each enemy's secondary spell slot to match the newly selected level
+  // Update each enemy's primary and secondary spell slots to match the newly selected level
   G.enemies.forEach(e => {
-    const secId = getSecondarySpellForRole(e.role.id, spellLevel);
-    const prevFlash = e.spells.flash || { id: 'flash', up: true, backAt: 0 };
-    e.spells = { flash: prevFlash };
+    const priId = getPrimarySpellForRole(e.role.id, spellLevel, e.champ);
+    const secId = getSecondarySpellForRole(e.role.id, spellLevel, e.champ);
+    const prevPri = e.spells[priId] || { id: priId, up: true, backAt: 0 };
+    e.spells = { [priId]: prevPri };
+    e.primaryId = priId;
     e.secondaryId = secId;
-    if (secId) {
+    if (secId && secId !== priId) {
       e.spells[secId] = { id: secId, up: true, backAt: 0 };
     }
   });
@@ -949,16 +1583,23 @@ function setMode(mode) {
   if (currentMode === 'math' && mode !== 'math') {
     stopMathSprint();
   }
+  if (Q.nextTimeout) {
+    clearTimeout(Q.nextTimeout);
+    Q.nextTimeout = null;
+  }
   currentMode = mode;
-  ['instant', 'burst', 'rapid', 'math'].forEach(m => {
+  ['instant', 'burst', 'rapid', 'math', 'quiz'].forEach(m => {
     const btn = document.getElementById('mode-' + m);
     if (btn) btn.classList.toggle('active', m === mode);
   });
 
   const isMath = mode === 'math';
+  const isQuiz = mode === 'quiz';
+  const isChat = !isMath && !isQuiz;
   document.getElementById('mathSprintView').classList.toggle('hidden', !isMath);
-  document.getElementById('chatFeedWrapper').classList.toggle('hidden', isMath);
-  document.getElementById('chatContainer').classList.toggle('hidden', isMath);
+  document.getElementById('hasteQuizView').classList.toggle('hidden', !isQuiz);
+  document.getElementById('chatFeedWrapper').classList.toggle('hidden', !isChat);
+  document.getElementById('chatContainer').classList.toggle('hidden', !isChat);
 
   if (isMath) {
     pause();
@@ -969,9 +1610,23 @@ function setMode(mode) {
     return;
   }
 
+  if (isQuiz) {
+    pause();
+    document.getElementById('modeDesc').innerHTML =
+      `🎓 <strong style="color: var(--gold);">Haste Quiz:</strong> Drill Cosmic Insight (+18), Ionian Boots (+10), and Both (+28) cooldowns!`;
+    initHasteQuiz();
+    return;
+  }
+
   document.getElementById('modeDesc').innerHTML = mode === 'rapid'
-    ? `🎯 <strong style="color: var(--gold);">Rapid Solo:</strong> Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)`
-    : `Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">620toptp</code>)`;
+    ? `🎯 <strong style="color: var(--gold);">Rapid Solo:</strong> Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">1945mid tp</code> / <code class="mono" style="color:var(--gold);">1945jgl</code>)`
+    : `Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">1945mid tp</code> / <code class="mono" style="color:var(--gold);">1945jgl</code>)`;
+
+  updateClockDisplay();
+  if (!G.on) {
+    document.getElementById('btnStart').textContent = 'START';
+    document.getElementById('btnStart').style.background = 'var(--gold)';
+  }
 
   if (G.on) {
     clearScheduledTimeouts();
@@ -1071,8 +1726,9 @@ document.getElementById('mathInput').addEventListener('input', e => {
     const parsed = parseTime(val);
     const elapsedSec = ((Date.now() - M.askedAtMs) / 1000).toFixed(2);
     const fb = document.getElementById('mathLastFeedback');
+    const evalRes = parsed !== null ? evaluateTiming(parsed, M.targetSec) : { ok: false };
 
-    if (parsed !== null && Math.abs(parsed - M.targetSec) <= earlyToleranceSec && parsed <= M.targetSec) {
+    if (evalRes.ok) {
       M.score++;
       M.reactions.push(parseFloat(elapsedSec));
       document.getElementById('mathScore').textContent = M.score;
@@ -1091,6 +1747,222 @@ document.getElementById('mathInput').addEventListener('input', e => {
   }
 });
 
+// ===================== COSMIC INSIGHT & IONIAN BOOTS QUIZ =====================
+function initHasteQuiz() {
+  document.getElementById('btnStart').textContent = 'NEW Q';
+  document.getElementById('quizBestScore').textContent = quizBestAllTime;
+  document.getElementById('clock').textContent = 'QUIZ';
+  updateQuizStatsUI();
+  nextQuizQuestion();
+}
+
+function setQuizSubMode(sub) {
+  Q.subMode = sub;
+  ['lookup', 'math'].forEach(m => {
+    const btn = document.getElementById('qtype-' + m);
+    if (btn) btn.classList.toggle('active', m === sub);
+  });
+  nextQuizQuestion();
+}
+
+function setQuizScope(scope) {
+  Q.scope = scope;
+  ['5m', 'meta', 'all'].forEach(s => {
+    const btn = document.getElementById('qscope-' + s);
+    if (btn) btn.classList.toggle('active', s === scope);
+  });
+  nextQuizQuestion();
+}
+
+function updateQuizStatsUI() {
+  document.getElementById('quizScore').textContent = Q.score;
+  document.getElementById('quizStreak').textContent = Q.streak;
+  document.getElementById('quizBestScore').textContent = quizBestAllTime;
+  document.getElementById('quizAcc').textContent = Q.total > 0 ? Math.round((Q.score / Q.total) * 100) + '%' : '—';
+}
+
+function nextQuizQuestion() {
+  if (Q.nextTimeout) {
+    clearTimeout(Q.nextTimeout);
+    Q.nextTimeout = null;
+  }
+  Q.locked = false;
+
+  const spellPool = Q.scope === '5m'
+    ? [SPELLS.flash, SPELLS.tp]
+    : Q.scope === 'meta'
+      ? [SPELLS.flash, SPELLS.tp, SPELLS.cleanse, SPELLS.exhaust, SPELLS.ghost, SPELLS.heal]
+      : [SPELLS.flash, SPELLS.tp, SPELLS.cleanse, SPELLS.exhaust, SPELLS.ghost, SPELLS.heal, SPELLS.ignite, SPELLS.barrier];
+  const sp = pickWeighted(spellPool, s => s.baseWeight);
+  const hasteKey = pick(['boots', 'cosmic', 'both']);
+  const row = HASTE_TABLE[sp.cd][hasteKey];
+
+  let promptTimeSec = 0;
+  let targetSec = row.cleanCd;
+  let altTargetSec = row.altCleanCd;
+  let exactTargetSec = row.exactCd;
+
+  if (Q.subMode === 'math') {
+    const min = 4 + Math.floor(Math.random() * 20);
+    const sec = Math.floor(Math.random() * 4) * 15;
+    promptTimeSec = min * 60 + sec;
+    targetSec = promptTimeSec + row.cleanCd;
+    altTargetSec = promptTimeSec + row.altCleanCd;
+    exactTargetSec = promptTimeSec + row.exactCd;
+  }
+
+  // Generate 3 plausible distractors
+  const candidates = new Set();
+  if (Q.subMode === 'lookup') {
+    Object.values(HASTE_TABLE[sp.cd]).forEach(c => { candidates.add(c.cleanCd); candidates.add(c.altCleanCd); });
+    [-30, -20, -15, -10, +10, +15, +20, +30].forEach(d => {
+      const val = Math.round((row.cleanCd + d) / 5) * 5;
+      if (val >= 120 && val <= 310) candidates.add(val);
+    });
+  } else {
+    [-30, -20, -15, +15, +20, +30, +45].forEach(d => {
+      const val = targetSec + d;
+      if (val > promptTimeSec + 60) candidates.add(val);
+    });
+    Object.values(HASTE_TABLE[sp.cd]).forEach(c => {
+      candidates.add(promptTimeSec + c.cleanCd);
+    });
+  }
+
+  const forbidden = new Set([targetSec, altTargetSec, exactTargetSec]);
+  const distractors = [...candidates].filter(v => !forbidden.has(v)).sort(() => Math.random() - 0.5).slice(0, 3);
+  const options = [
+    { valSec: targetSec, isCorrect: true },
+    ...distractors.map(v => ({ valSec: v, isCorrect: false })),
+  ].sort(() => Math.random() - 0.5);
+
+  Q.question = {
+    sp,
+    hasteKey,
+    row,
+    promptTimeSec,
+    targetSec,
+    altTargetSec,
+    exactTargetSec,
+    options,
+  };
+
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const q = Q.question;
+  if (!q) return;
+
+  const hMeta = HASTE_META[q.hasteKey];
+  const hasteIconsHtml = `
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold" style="background:#0B1626; border:1px solid #22324A;">
+      ${(q.hasteKey === 'cosmic' || q.hasteKey === 'both') ? `<img src="${COSMIC_ICON_URL}" class="w-5 h-5 rounded" onerror="this.style.display='none'" />` : ''}
+      ${(q.hasteKey === 'boots' || q.hasteKey === 'both') ? `<img src="${getBootsIconUrl()}" class="w-5 h-5 rounded" onerror="this.style.display='none'" />` : ''}
+      <span style="color:${q.hasteKey === 'cosmic' ? '#22D3EE' : q.hasteKey === 'boots' ? '#60A5FA' : 'var(--gold)'};">${hMeta.label}</span>
+    </div>
+  `;
+
+  document.getElementById('quizPromptHeader').innerHTML = `
+    <div class="flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-semibold" style="background:#0B1626; border:1px solid #22324A;">
+      <div class="w-5 h-5 rounded overflow-hidden flex items-center justify-center" style="background:${q.sp.bg};">
+        <img src="${getSpellIconUrl(q.sp.id)}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+        <span style="display:none;">${q.sp.icon}</span>
+      </div>
+      <span style="color:${q.sp.color};">${q.sp.name}</span>
+      <span class="text-[10px] mono" style="color:var(--text-light);">(${fmt(q.sp.cd)} base)</span>
+    </div>
+    <span style="color:var(--text-light);">+</span>
+    ${hasteIconsHtml}
+  `;
+
+  if (Q.subMode === 'lookup') {
+    document.getElementById('quizMainPrompt').textContent = `Effective CD = ?`;
+    document.getElementById('quizSubPrompt').textContent = `Pick the mental-math cooldown or type e.g. ${fmtCompact(q.targetSec)} / ${fmt(q.targetSec)}`;
+  } else {
+    document.getElementById('quizMainPrompt').textContent = `Ping @ ${fmtChat(q.promptTimeSec)}`;
+    document.getElementById('quizSubPrompt').textContent = `When is ${q.sp.name} UP? Type e.g. ${fmtCompact(q.targetSec)} or pick below`;
+  }
+
+  document.getElementById('quizChoices').innerHTML = q.options.map((opt, idx) => `
+    <button type="button" data-quiz-idx="${idx}" onclick="answerQuizChoice(${opt.valSec}, this)"
+            class="py-3 px-4 rounded-lg mono text-lg font-bold transition-all"
+            style="background:#0C1628; border:1px solid #243550; color:var(--text-bright); cursor:pointer;">
+      ${fmt(opt.valSec)}
+      <span class="block text-[10px] font-normal" style="color:#64748B;">type: ${fmtCompact(opt.valSec)}</span>
+    </button>
+  `).join('');
+
+  const inp = document.getElementById('quizInput');
+  inp.value = '';
+  inp.focus();
+  document.getElementById('quizFeedback').textContent = '';
+}
+
+function answerQuizChoice(chosenSec, btnEl = null) {
+  if (Q.locked || !Q.question) return;
+  Q.locked = true;
+  const q = Q.question;
+  Q.total++;
+
+  // Accept exact pro target, alternate pro rounding, exact wiki second, or within +/-2s of wiki second
+  const isRight = chosenSec === q.targetSec ||
+                  chosenSec === q.altTargetSec ||
+                  chosenSec === q.exactTargetSec ||
+                  Math.abs(chosenSec - q.exactTargetSec) <= 2;
+
+  const fb = document.getElementById('quizFeedback');
+  const hMeta = HASTE_META[q.hasteKey];
+
+  if (isRight) {
+    Q.score++;
+    Q.streak++;
+    if (Q.streak > quizBestAllTime) {
+      quizBestAllTime = Q.streak;
+      saveSettings();
+    }
+    if (btnEl) {
+      btnEl.style.borderColor = 'var(--correct)';
+      btnEl.style.background = 'rgba(29,185,84,0.18)';
+    }
+    fb.style.color = 'var(--correct)';
+    fb.textContent = `✅ ${q.sp.name} + ${hMeta.short} = ${fmt(q.row.cleanCd)} (Wiki: ${q.row.exactStr})`;
+  } else {
+    Q.streak = 0;
+    if (btnEl) {
+      btnEl.style.borderColor = 'var(--wrong)';
+      btnEl.style.background = 'rgba(232,64,87,0.18)';
+    }
+    fb.style.color = 'var(--wrong)';
+    fb.textContent = `❌ Answer: ${fmt(q.targetSec)} (CD ${fmt(q.row.cleanCd)} · Wiki ${q.row.exactStr})`;
+  }
+
+  // Highlight right choice
+  document.querySelectorAll('#quizChoices button').forEach(b => {
+    const idx = parseInt(b.getAttribute('data-quiz-idx'), 10);
+    if (q.options[idx]?.isCorrect) {
+      b.style.borderColor = 'var(--correct)';
+    }
+  });
+
+  updateQuizStatsUI();
+
+  Q.nextTimeout = setTimeout(() => {
+    if (currentMode === 'quiz') nextQuizQuestion();
+  }, isRight ? 1150 : 1800);
+}
+
+function submitQuizInput() {
+  if (Q.locked) {
+    nextQuizQuestion();
+    return;
+  }
+  const raw = document.getElementById('quizInput').value.trim();
+  const parsed = parseTime(raw);
+  if (parsed === null) return;
+  answerQuizChoice(parsed, null);
+}
+
 // ===================== TIME HELPERS =====================
 function fmtChat(s) {
   const m = Math.floor(s / 60);
@@ -1105,7 +1977,7 @@ function fmtCompact(s) {
 }
 
 function parseTime(str) {
-  str = str.trim();
+  str = str.trim().replace('.', ':');
   if (!str) return null;
   let m, s;
   if (str.includes(':')) {
@@ -1119,39 +1991,73 @@ function parseTime(str) {
   return m * 60 + s;
 }
 
-// ===================== PARSER (HANDLES ALL ROLES, SPELLS, ORDERS & GLUED TOKENS) =====================
-// Supports:
-//   Flash (default): "620top", "top620", "620 top", "top 620", "620topf"
-//   Non-Flash:       "2200toptp", "2200tptop", "2200 top tp", "toptp 2200", "1830adh", "1715supexh"
+// ===================== PARSER (CHUNK-FIRST, NO COLLISIONS, ALL FORMATS) =====================
+// Supports spaced, glued, short, and long forms in any order:
+//   Flash (default): "620top", "top620", "620 top", "top 620", "620topf", "620 top flash"
+//   Other Spells:    "1945mid tp", "1945 mid teleport", "1945midtp", "1945tpmid",
+//                    "mid tp 1945", "mid 1945 tp", "midtp1945", "1830ad heal", "1715sup exhaust"
 const ALL_ROLE_KEYS = ROLES.flatMap(r => r.keys).sort((a, b) => b.length - a.length);
 const ALL_SPELL_KEYS = Object.keys(SPELL_ALIAS_MAP).sort((a, b) => b.length - a.length);
-const ATOM_REGEX = new RegExp(
-  `(\\d{1,2}:\\d{2}|\\d{3,4})|(${ALL_ROLE_KEYS.join('|')})|(${ALL_SPELL_KEYS.join('|')})`,
-  'g'
-);
 
-function parseMessage(raw) {
-  const text = raw.toLowerCase().trim();
-  if (!text) return [];
+function findExactRole(str) {
+  return ROLES.find(r => r.keys.includes(str)) || null;
+}
 
-  // Extract ordered atoms: { type: 'time' | 'role' | 'spell', ... }
-  const atoms = [];
-  let m;
-  ATOM_REGEX.lastIndex = 0;
-  while ((m = ATOM_REGEX.exec(text)) !== null) {
-    if (m[1]) {
-      const t = parseTime(m[1]);
-      if (t !== null) atoms.push({ type: 'time', val: t });
-    } else if (m[2]) {
-      const role = ROLES.find(r => r.keys.includes(m[2]));
-      if (role) atoms.push({ type: 'role', val: role });
-    } else if (m[3]) {
-      const spId = SPELL_ALIAS_MAP[m[3]];
-      if (spId) atoms.push({ type: 'spell', val: spId });
+function findExactSpell(str) {
+  return SPELL_ALIAS_MAP[str] || null;
+}
+
+// Splits a pure-letter segment like "midtp", "tptop", "adheal", "supexhaust", "mid"
+function parseAlphaSegment(seg) {
+  // 1. Exact whole-word match FIRST (prevents 't' from stealing 'tp'/'teleport', 'b' from 'barrier', etc.)
+  const exactRole = findExactRole(seg);
+  if (exactRole) return [{ type: 'role', val: exactRole }];
+
+  const exactSpell = findExactSpell(seg);
+  if (exactSpell) return [{ type: 'spell', val: exactSpell }];
+
+  // 2. Exact roleKey + spellKey (longest match first)
+  for (const rk of ALL_ROLE_KEYS) {
+    if (seg.startsWith(rk)) {
+      const rest = seg.slice(rk.length);
+      const sp = findExactSpell(rest);
+      if (sp) return [{ type: 'role', val: findExactRole(rk) }, { type: 'spell', val: sp }];
     }
   }
 
-  // Group atoms into { role, spell, time } entries
+  // 3. Exact spellKey + roleKey (longest match first)
+  for (const sk of ALL_SPELL_KEYS) {
+    if (seg.startsWith(sk)) {
+      const rest = seg.slice(sk.length);
+      const r = findExactRole(rest);
+      if (r) return [{ type: 'spell', val: SPELL_ALIAS_MAP[sk] }, { type: 'role', val: r }];
+    }
+  }
+
+  return [];
+}
+
+// Parses one whitespace-separated chunk (e.g. "1945mid", "19.45jgl", "tp", "1945midtp", "midtp1945")
+function parseChunkAtoms(chunk) {
+  const atoms = [];
+  // Separate time blocks (e.g. 19:45, 19.45, or 1945) from letter blocks (e.g. midtp)
+  const parts = chunk.match(/\d{1,2}[:.]\d{2}|\d+|[a-z]+/g) || [];
+  for (const part of parts) {
+    if (/^\d/.test(part)) {
+      const t = parseTime(part);
+      if (t !== null) atoms.push({ type: 'time', val: t });
+    } else {
+      atoms.push(...parseAlphaSegment(part));
+    }
+  }
+  return atoms;
+}
+
+function parseMessage(raw) {
+  const cleaned = raw.toLowerCase().replace(/[,/+|]+/g, ' ').trim();
+  if (!cleaned) return [];
+
+  const chunks = cleaned.split(/\s+/);
   const results = [];
   let cur = { role: null, spell: null, time: null };
 
@@ -1162,19 +2068,31 @@ function parseMessage(raw) {
     cur = { role: null, spell: null, time: null };
   };
 
-  for (const atom of atoms) {
-    if (atom.type === 'time') {
-      if (cur.time !== null) flush();
-      cur.time = atom.val;
-    } else if (atom.type === 'role') {
-      if (cur.role !== null) flush();
-      cur.role = atom.val;
-    } else if (atom.type === 'spell') {
-      if (cur.spell !== null) flush();
-      cur.spell = atom.val;
-    }
-    if (cur.role && cur.time !== null && cur.spell !== null) {
+  for (const chunk of chunks) {
+    const atoms = parseChunkAtoms(chunk);
+    if (atoms.length === 0) continue;
+
+    // If current entry already has role + time, and this new chunk starts a new timer
+    // (contains a time or role), flush current before processing the new chunk!
+    const chunkHasTimeOrRole = atoms.some(a => a.type === 'time' || a.type === 'role');
+    if (cur.role && cur.time !== null && chunkHasTimeOrRole) {
       flush();
+    }
+
+    for (const atom of atoms) {
+      if (atom.type === 'time') {
+        if (cur.time !== null) flush();
+        cur.time = atom.val;
+      } else if (atom.type === 'role') {
+        if (cur.role !== null) flush();
+        cur.role = atom.val;
+      } else if (atom.type === 'spell') {
+        if (cur.spell !== null) flush();
+        cur.spell = atom.val;
+      }
+      if (cur.role && cur.time !== null && cur.spell !== null) {
+        flush();
+      }
     }
   }
   flush();
@@ -1192,14 +2110,25 @@ function seedStartingClipboard() {
   const e1 = shuffled[0];
   const e2 = shuffled[1];
 
-  const exp1 = Math.floor((G.t + 35 + Math.floor(Math.random() * 15)) / 5) * 5;
-  const exp2 = Math.floor((G.t + 135 + Math.floor(Math.random() * 35)) / 5) * 5;
+  // At ~05:30 laning start, seed realistic early timers (Flash & Teleport, or primary spell)
+  const pickSeedSpell = (enemy) => {
+    if (enemy.spells.tp && Math.random() < 0.35) return 'tp';
+    return enemy.spells.flash ? 'flash' : Object.keys(enemy.spells)[0];
+  };
+  const sp1Id = pickSeedSpell(e1);
+  const sp2Id = pickSeedSpell(e2);
+  const cd1 = getEffectiveSpellTiming(e1, sp1Id).cleanCd;
+  const cd2 = getEffectiveSpellTiming(e2, sp2Id).cleanCd;
 
-  e1.spells.flash.up = false; e1.spells.flash.backAt = exp1;
-  e2.spells.flash.up = false; e2.spells.flash.backAt = exp2;
+  const exp1 = Math.floor((G.t + 30 + Math.floor(Math.random() * 20)) / 5) * 5;
+  const exp2Max = Math.min(cd2 - 15, 165);
+  const exp2 = Math.floor((G.t + Math.max(95, exp2Max - 25) + Math.floor(Math.random() * 20)) / 5) * 5;
 
-  const t1 = { role: e1.role, champ: e1.champ, expiresAt: exp1, playerTime: exp1, droppedOnce: false };
-  const t2 = { role: e2.role, champ: e2.champ, expiresAt: exp2, playerTime: exp2, droppedOnce: false };
+  if (e1.spells[sp1Id]) { e1.spells[sp1Id].up = false; e1.spells[sp1Id].backAt = exp1; }
+  if (e2.spells[sp2Id]) { e2.spells[sp2Id].up = false; e2.spells[sp2Id].backAt = exp2; }
+
+  const t1 = { role: e1.role, spellId: sp1Id, champ: e1.champ, expiresAt: exp1, cdDuration: cd1, playerTime: exp1, droppedOnce: false };
+  const t2 = { role: e2.role, spellId: sp2Id, champ: e2.champ, expiresAt: exp2, cdDuration: cd2, playerTime: exp2, droppedOnce: false };
 
   G.activeTimers = [t1, t2];
   G.allTimersHistory = [
@@ -1207,14 +2136,14 @@ function seedStartingClipboard() {
     { ...t2, cleanedByPlayer: false },
   ];
 
-  const seedStr = `${formatTimerToken(exp1, e1.role.id)} ${formatTimerToken(exp2, e2.role.id)}`;
+  const seedStr = `${formatTimerToken(exp1, e1.role.id, sp1Id)} ${formatTimerToken(exp2, e2.role.id, sp2Id)}`;
   setClipboardString(seedStr);
 
   const area = document.getElementById('eventArea');
   const note = document.createElement('div');
   note.className = 'my-2 py-1.5 px-3 rounded text-xs mono';
   note.style.cssText = 'background: rgba(200, 155, 60, 0.08); border: 1px solid rgba(200, 155, 60, 0.25); color: var(--text-light); text-shadow: none;';
-  note.innerHTML = `📋 Pre-loaded clipboard with 2 active timers: <strong style="color:var(--text-bright);">${seedStr}</strong> — press <span class="key-cap">Enter</span> then <span class="key-cap">Ctrl+V</span> when the next Flash is pinged!`;
+  note.innerHTML = `📋 Pre-loaded clipboard with 2 active timers: <strong style="color:var(--text-bright);">${seedStr}</strong> — press <span class="key-cap">Enter</span> then <span class="key-cap">Ctrl+V</span> when the next spell is pinged!`;
   area.appendChild(note);
 
   renderBoard();
@@ -1225,6 +2154,10 @@ function seedStartingClipboard() {
 function toggleGame() {
   if (currentMode === 'math') {
     startMathSprint();
+    return;
+  }
+  if (currentMode === 'quiz') {
+    nextQuizQuestion();
     return;
   }
   G.on ? pause() : start();
@@ -1268,6 +2201,10 @@ function pause() {
 function resetGame() {
   if (currentMode === 'math') {
     startMathSprint();
+    return;
+  }
+  if (currentMode === 'quiz') {
+    nextQuizQuestion();
     return;
   }
   pause();
@@ -1381,7 +2318,26 @@ function isTimerExpired(t) {
   return t.expiresAt <= G.t || t.playerTime <= G.t;
 }
 
-// ===================== PACING & EVENT GENERATOR =====================
+// ===================== PACING & EVENT GENERATOR (GAME-PHASE WEIGHTED) =====================
+function getPhaseSpellWeight(spellId, roleId, gameTimeSec = G.t, isTeamfight = false) {
+  const isLateOrFight = gameTimeSec >= 840 || isTeamfight; // >= 14:00 mid/late or teamfight burst
+  switch (spellId) {
+    case 'flash':   return 10.0;
+    case 'tp':      return gameTimeSec < 840 ? 8.0 : 6.0;
+    case 'cleanse': return isLateOrFight ? 6.5 : 1.4;
+    case 'exhaust': return isLateOrFight ? 5.8 : 1.4;
+    case 'ghost':   return isLateOrFight ? 4.2 : 1.5;
+    case 'heal':    return isLateOrFight ? 4.0 : 1.5;
+    case 'barrier': return isLateOrFight ? 2.2 : 1.2;
+    case 'ignite':  return 1.2;
+    default:        return 1.0;
+  }
+}
+
+function pickWeightedSpellPair(pairs, gameTimeSec = G.t, isTeamfight = false) {
+  return pickWeighted(pairs, p => getPhaseSpellWeight(p.spellId, p.enemy.role.id, gameTimeSec, isTeamfight));
+}
+
 function getAvailableSpellPairs(atTime = G.t) {
   const pairs = [];
   G.enemies.forEach(e => {
@@ -1397,6 +2353,10 @@ function getAvailableSpellPairs(atTime = G.t) {
 function manualNext() {
   if (currentMode === 'math') {
     startMathSprint();
+    return;
+  }
+  if (currentMode === 'quiz') {
+    nextQuizQuestion();
     return;
   }
   if (!G.on) {
@@ -1427,7 +2387,7 @@ function triggerNextEvent(doTimeJump = true) {
     updateClockDisplay();
     document.getElementById('jumpBadge').classList.add('hidden');
     const pairs = getAvailableSpellPairs();
-    const chosen = pick(pairs);
+    const chosen = pickWeightedSpellPair(pairs, randomTime, false);
     fireSinglePing(chosen.enemy, chosen.spellId);
     return;
   }
@@ -1455,7 +2415,7 @@ function triggerNextEvent(doTimeJump = true) {
       if (isClutterEnabled() && Math.random() < 0.4) {
         appendAmbientChatLine(G.t - 1);
       }
-      const chosen = pick(pool);
+      const chosen = pickWeightedSpellPair(pool, G.t, false);
       fireSinglePing(chosen.enemy, chosen.spellId);
     }
     return;
@@ -1498,14 +2458,15 @@ function spawnTeamfightBurst() {
     chosenRoles = availRoleIds.slice(0, count);
   }
 
-  // Pick 1 available spell (or occasionally 2 spells if same champ pops Flash + Ignite/Heal!) for each chosen role
+  // Pick 1 weighted available spell (or 2 spells if same champ pops Flash + Cleanse/Exhaust/etc. in a teamfight)
   const burstEvents = [];
+  const doublePopChance = G.t >= 840 ? 0.38 : 0.25;
   chosenRoles.forEach(rId => {
     const rolePairs = availPairs.filter(p => p.enemy.role.id === rId);
     if (rolePairs.length > 0) {
-      const first = pick(rolePairs);
+      const first = pickWeightedSpellPair(rolePairs, G.t, true);
       burstEvents.push(first);
-      if (rolePairs.length > 1 && burstEvents.length < 4 && Math.random() < 0.25) {
+      if (rolePairs.length > 1 && burstEvents.length < 4 && Math.random() < doublePopChance) {
         const second = rolePairs.find(p => p.spellId !== first.spellId);
         if (second) burstEvents.push(second);
       }
@@ -1541,7 +2502,7 @@ function spawnTeamfightBurst() {
 
 // Clickable Spell icon on TAB scoreboard!
 function manualPingEnemy(roleId, spellId = 'flash') {
-  if (currentMode === 'math') return;
+  if (currentMode === 'math' || currentMode === 'quiz') return;
   if (!G.on) start();
   const enemy = G.enemies.find(e => e.role.id === roleId);
   if (!enemy) return;
@@ -1592,9 +2553,11 @@ function appendAmbientChatLine(timestampSec) {
 function fireSinglePing(e, spellId = 'flash') {
   const sp = SPELLS[spellId] || SPELLS.flash;
   const idx = G.enemies.indexOf(e);
+  const timing = getEffectiveSpellTiming(e, sp.id);
+
   if (e.spells[sp.id]) {
     e.spells[sp.id].up = false;
-    e.spells[sp.id].backAt = G.t + sp.cd;
+    e.spells[sp.id].backAt = G.t + timing.cleanCd;
   }
 
   const ally = pickPingingAlly(e.role.id);
@@ -1605,12 +2568,17 @@ function fireSinglePing(e, spellId = 'flash') {
     role: e.role,
     spellId: sp.id,
     spellName: sp.name,
-    spellCd: sp.cd,
+    spellCd: timing.cleanCd,
+    hasteState: timing.hasteState,
+    hasteVal: timing.hasteVal,
     champ: e.champ,
     allyName: ally.name,
     allyChamp: ally.champ,
     usedAt: G.t,
-    correctTime: G.t + sp.cd,
+    correctTime: G.t + timing.cleanCd,
+    cleanTime: G.t + timing.cleanCd,
+    altCleanTime: G.t + timing.altCleanCd,
+    exactTime: G.t + timing.exactCd,
     answeredAt: null,
     correct: null,
     realMs: Date.now(),
@@ -1665,9 +2633,9 @@ function markPingLineResolved(pingId) {
 
 function scrollChatToBottom() {
   const wrapper = document.getElementById('chatFeedWrapper');
-  const area = document.getElementById('eventArea');
-  if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
-  if (area) area.scrollTop = area.scrollHeight;
+  if (wrapper) {
+    wrapper.scrollTop = wrapper.scrollHeight;
+  }
 }
 
 function updatePendingBadge() {
@@ -1740,7 +2708,7 @@ function renderClipboardPreview() {
 }
 
 function openChat() {
-  if (currentMode === 'math') return;
+  if (currentMode === 'math' || currentMode === 'quiz') return;
   if (!G.on) start();
   G.chatOpen = true;
   pressedCtrlCThisTurn = false;
@@ -1750,6 +2718,7 @@ function openChat() {
   updateClockDisplay();
   const inp = document.getElementById('chatInput');
   inp.focus();
+  requestAnimationFrame(scrollChatToBottom);
 }
 
 function closeChat() {
@@ -1757,6 +2726,7 @@ function closeChat() {
   document.getElementById('chatRow').classList.add('hidden');
   document.getElementById('chatHint').classList.remove('hidden');
   document.getElementById('chatInput').value = '';
+  requestAnimationFrame(scrollChatToBottom);
 }
 
 function sendChat() {
@@ -1821,18 +2791,54 @@ function addInlineBadge(container, text, color) {
 }
 
 // ===================== FULL 3-PART CLIPBOARD AUDIT (SMART TOKEN CLASSIFIER) =====================
-function evaluateTiming(playerTime, exactTime) {
-  const diff = playerTime - exactTime;
-  if (diff === 0) {
+function evaluateTiming(playerTime, pingOrTarget) {
+  let targets, canonical;
+  if (typeof pingOrTarget === 'number') {
+    targets = [pingOrTarget];
+    canonical = pingOrTarget;
+  } else {
+    canonical = pingOrTarget.correctTime;
+    targets = [
+      pingOrTarget.cleanTime ?? canonical,
+      pingOrTarget.altCleanTime ?? canonical,
+      pingOrTarget.exactTime ?? canonical,
+    ];
+  }
+  const minTarget = Math.min(...targets);
+  const maxTarget = Math.max(...targets);
+  const diff = playerTime - canonical;
+
+  if (playerTime >= minTarget && playerTime <= maxTarget) {
     return { ok: true, kind: 'exact', diff: 0, label: 'Exact' };
   }
-  if (diff < 0 && diff >= -earlyToleranceSec) {
-    return { ok: true, kind: 'safe', diff, label: `Safe ${diff}s` };
+  if (playerTime < minTarget) {
+    const earlyBy = minTarget - playerTime;
+    if (earlyBy <= earlyToleranceSec) {
+      return { ok: true, kind: 'safe', diff, label: `Safe ${diff}s` };
+    }
+    return { ok: false, kind: 'wrong', diff, label: `Off by ${diff}s` };
   }
-  if (diff > 0) {
-    return { ok: false, kind: 'late', diff, label: `LATE +${diff}s!` };
+  const lateBy = playerTime - maxTarget;
+  if (lateBy <= lateToleranceSec) {
+    return { ok: true, kind: 'rounded', diff: lateBy, label: `Rounded +${lateBy}s` };
   }
-  return { ok: false, kind: 'wrong', diff, label: `Off by ${diff}s` };
+  return { ok: false, kind: 'late', diff: lateBy, label: `LATE +${lateBy}s!` };
+}
+
+function recordEntryFromPing(ping, playerTime) {
+  const sp = SPELLS[ping.spellId] || SPELLS.flash;
+  const entry = {
+    role: ping.role,
+    spellId: ping.spellId,
+    champ: ping.champ,
+    expiresAt: ping.correctTime,
+    cdDuration: ping.spellCd || sp.cd,
+    playerTime,
+    droppedOnce: false,
+  };
+  G.activeTimers = G.activeTimers.filter(x => !(x.role.id === ping.role.id && (x.spellId || 'flash') === ping.spellId));
+  G.activeTimers.push(entry);
+  G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
 }
 
 function processFullListAudit(submittedTimers, feedbackContainer) {
@@ -1848,12 +2854,14 @@ function processFullListAudit(submittedTimers, feedbackContainer) {
   let cleanedNames = [];
 
   const matchedActiveKeys = new Set();
+  const unmatchedTokens = [];
 
+  // PASS 1: Expired, Kept Active, Exact Ping Match, and Right-Role Wrong-Spell
   submittedTimers.forEach(timer => {
     const tokenLabel = formatTimerToken(timer.time, timer.role.id, timer.spell);
     const key = `${timer.role.id}:${timer.spell}`;
 
-    // STEP 1: Is this token an already-expired timestamp (timer.time <= G.t)?
+    // STEP 1: Already-expired timestamp left in clipboard
     if (timer.time <= G.t && currentMode !== 'rapid') {
       anyMistakeThisMsg = true;
       G.stats.expiredLeftIn++;
@@ -1861,11 +2869,11 @@ function processFullListAudit(submittedTimers, feedbackContainer) {
       return;
     }
 
-    // STEP 2: Does this token match a pre-existing ACTIVE timer (same role AND same spell)?
+    // STEP 2: Matches pre-existing ACTIVE timer
     const activeMatch = preExistingActive.find(at =>
       at.role.id === timer.role.id &&
       (at.spellId || 'flash') === timer.spell &&
-      (at.playerTime === timer.time || Math.abs(at.expiresAt - timer.time) <= earlyToleranceSec)
+      (at.playerTime === timer.time || (timer.time <= at.expiresAt + lateToleranceSec && timer.time >= at.expiresAt - earlyToleranceSec))
     );
     if (activeMatch && !matchedActiveKeys.has(key)) {
       matchedActiveKeys.add(key);
@@ -1875,73 +2883,54 @@ function processFullListAudit(submittedTimers, feedbackContainer) {
       return;
     }
 
-    // STEP 3: Does this token match a pending (unanswered) ping for this role + spell?
+    // STEP 3: Exact role + spell match on a pending ping
     const match = pending.find(p => p.role.id === timer.role.id && p.spellId === timer.spell && p.answeredAt === null);
     if (match) {
       const elapsed = Date.now() - match.realMs;
       const sec = (elapsed / 1000).toFixed(1);
-      const evalRes = evaluateTiming(timer.time, match.correctTime);
+      const evalRes = evaluateTiming(timer.time, match);
 
       match.answeredAt = G.t;
       match.correct = evalRes.ok;
 
       markPingLineResolved(match.id);
       const status = document.querySelector(`[data-ping-status="${match.id}"]`);
+      const hasteTag = match.hasteState && match.hasteState !== 'none' ? ` [${HASTE_META[match.hasteState].short}]` : '';
 
       if (evalRes.ok) {
         newCorrectCount++;
         G.stats.ok++;
         G.stats.times.push(parseFloat(sec));
 
-        const entry = {
-          role: timer.role,
-          spellId: timer.spell,
-          champ: match.champ,
-          expiresAt: match.correctTime,
-          playerTime: timer.time,
-          droppedOnce: false,
-        };
-        G.activeTimers = G.activeTimers.filter(x => !(x.role.id === timer.role.id && (x.spellId || 'flash') === timer.spell));
-        G.activeTimers.push(entry);
-        G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+        recordEntryFromPing(match, timer.time);
 
         addInlineBadge(feedbackContainer, `✅ +${tokenLabel} ${evalRes.label} (${sec}s)`, 'var(--correct)');
         if (status) {
-          status.textContent = `✅ ${tokenLabel} (${evalRes.label})`;
+          status.textContent = `✅ ${tokenLabel} (${evalRes.label}${hasteTag})`;
           status.style.color = 'var(--correct)';
         }
-        addRecent(true, timer.role, sec, `${SPELLS[timer.spell].name} · ${evalRes.label}`);
+        addRecent(true, timer.role, sec, `${SPELLS[timer.spell].name}${hasteTag} · ${evalRes.label}`);
       } else {
         anyMistakeThisMsg = true;
         G.stats.wrong++;
 
-        const safe5 = Math.floor(match.correctTime / 5) * 5;
-        const safeLabel = formatTimerToken(safe5, match.role.id, match.spellId);
-        const entry = {
-          role: match.role,
-          spellId: match.spellId,
-          champ: match.champ,
-          expiresAt: match.correctTime,
-          playerTime: safe5,
-          droppedOnce: false,
-        };
-        G.activeTimers = G.activeTimers.filter(x => !(x.role.id === match.role.id && (x.spellId || 'flash') === match.spellId));
-        G.activeTimers.push(entry);
-        G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
+        const canonTime = match.correctTime;
+        const canonLabel = formatTimerToken(canonTime, match.role.id, match.spellId);
+        recordEntryFromPing(match, canonTime);
 
         if (evalRes.kind === 'late') {
-          addInlineBadge(feedbackContainer, `❌ LATE (+${evalRes.diff}s)! Use ${safeLabel}`, 'var(--wrong)');
-          if (status) { status.textContent = `❌ Late! Up at ${fmtCompact(match.correctTime)}`; status.style.color = 'var(--wrong)'; }
+          addInlineBadge(feedbackContainer, `❌ LATE (+${evalRes.diff}s)! Use ${canonLabel}${hasteTag}`, 'var(--wrong)');
+          if (status) { status.textContent = `❌ Late! Up at ${fmtCompact(canonTime)}${hasteTag}`; status.style.color = 'var(--wrong)'; }
         } else {
-          addInlineBadge(feedbackContainer, `❌ Typed ${fmtCompact(timer.time)}, safe: ${safeLabel}`, 'var(--wrong)');
-          if (status) { status.textContent = `❌ Safe: ${safeLabel}`; status.style.color = 'var(--wrong)'; }
+          addInlineBadge(feedbackContainer, `❌ Typed ${fmtCompact(timer.time)}, use ${canonLabel}${hasteTag}`, 'var(--wrong)');
+          if (status) { status.textContent = `❌ Use ${canonLabel}${hasteTag}`; status.style.color = 'var(--wrong)'; }
         }
-        addRecent(false, timer.role, sec, `${SPELLS[match.spellId].name} · ${evalRes.label}`);
+        addRecent(false, timer.role, sec, `${SPELLS[match.spellId].name}${hasteTag} · ${evalRes.label}`);
       }
       return;
     }
 
-    // STEP 3b: Right role, wrong spell (e.g. forgot 'tp' on '2200top' when Teleport was pinged!)
+    // STEP 3b: Right role, wrong spell
     const sameRoleWrongSpell = pending.find(p => p.role.id === timer.role.id && p.answeredAt === null);
     if (sameRoleWrongSpell) {
       anyMistakeThisMsg = true;
@@ -1953,61 +2942,93 @@ function processFullListAudit(submittedTimers, feedbackContainer) {
 
       markPingLineResolved(sameRoleWrongSpell.id);
       const status = document.querySelector(`[data-ping-status="${sameRoleWrongSpell.id}"]`);
-      const safe5 = Math.floor(sameRoleWrongSpell.correctTime / 5) * 5;
-      const safeLabel = formatTimerToken(safe5, sameRoleWrongSpell.role.id, sameRoleWrongSpell.spellId);
+      const canonTime = sameRoleWrongSpell.correctTime;
+      const canonLabel = formatTimerToken(canonTime, sameRoleWrongSpell.role.id, sameRoleWrongSpell.spellId);
       const spName = SPELLS[sameRoleWrongSpell.spellId].name;
 
       if (status) {
-        status.textContent = `❌ Used ${spName}! (${safeLabel})`;
+        status.textContent = `❌ Used ${spName}! (${canonLabel})`;
         status.style.color = 'var(--wrong)';
       }
 
-      const entry = {
-        role: sameRoleWrongSpell.role,
-        spellId: sameRoleWrongSpell.spellId,
-        champ: sameRoleWrongSpell.champ,
-        expiresAt: sameRoleWrongSpell.correctTime,
-        playerTime: safe5,
-        droppedOnce: false,
-      };
-      G.activeTimers = G.activeTimers.filter(x => !(x.role.id === sameRoleWrongSpell.role.id && (x.spellId || 'flash') === sameRoleWrongSpell.spellId));
-      G.activeTimers.push(entry);
-      G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
-
-      addInlineBadge(feedbackContainer, `❌ ${sameRoleWrongSpell.champ} used ${spName}, use ${safeLabel}!`, 'var(--wrong)');
+      recordEntryFromPing(sameRoleWrongSpell, canonTime);
+      addInlineBadge(feedbackContainer, `❌ ${sameRoleWrongSpell.champ} used ${spName}, use ${canonLabel}!`, 'var(--wrong)');
       addRecent(false, sameRoleWrongSpell.role, sec, `Wrong Spell (${spName})`);
       return;
     }
 
-    // STEP 4: Did they misidentify the Champion's role for a pending ping?
+    unmatchedTokens.push({ timer, tokenLabel });
+  });
+
+  // PASS 2 (STEP 4): Multi-ping Wrong-Role detection
+  unmatchedTokens.forEach(({ timer }) => {
     const stillUnanswered = pending.filter(p => p.answeredAt === null);
+    if (stillUnanswered.length === 0) return;
+
+    let wrongRolePing = null;
     if (stillUnanswered.length === 1) {
+      wrongRolePing = stillUnanswered[0];
+    } else {
+      const windowMax = Math.max(earlyToleranceSec, 20);
+      let bestDist = Infinity;
+      stillUnanswered.forEach(p => {
+        const dist = Math.abs(p.correctTime - timer.time);
+        if (dist <= windowMax && dist < bestDist) {
+          bestDist = dist;
+          wrongRolePing = p;
+        }
+      });
+    }
+
+    if (wrongRolePing) {
       anyMistakeThisMsg = true;
-      const onlyPing = stillUnanswered[0];
-      const elapsed = Date.now() - onlyPing.realMs;
+      const elapsed = Date.now() - wrongRolePing.realMs;
       const sec = (elapsed / 1000).toFixed(1);
-      onlyPing.answeredAt = G.t;
-      onlyPing.correct = false;
+      wrongRolePing.answeredAt = G.t;
+      wrongRolePing.correct = false;
       G.stats.wrong++;
 
-      markPingLineResolved(onlyPing.id);
-      const status = document.querySelector(`[data-ping-status="${onlyPing.id}"]`);
-      const safe5 = Math.floor(onlyPing.correctTime / 5) * 5;
-      const safeLabel = formatTimerToken(safe5, onlyPing.role.id, onlyPing.spellId);
+      markPingLineResolved(wrongRolePing.id);
+      const status = document.querySelector(`[data-ping-status="${wrongRolePing.id}"]`);
+      const canonTime = wrongRolePing.correctTime;
+      const canonLabel = formatTimerToken(canonTime, wrongRolePing.role.id, wrongRolePing.spellId);
       if (status) {
-        status.textContent = `❌ ${onlyPing.champ} is ${onlyPing.role.tag} (${safeLabel})`;
+        status.textContent = `❌ ${wrongRolePing.champ} is ${wrongRolePing.role.tag} (${canonLabel})`;
         status.style.color = 'var(--wrong)';
       }
 
-      const entry = { role: onlyPing.role, spellId: onlyPing.spellId, champ: onlyPing.champ, expiresAt: onlyPing.correctTime, playerTime: safe5, droppedOnce: false };
-      G.activeTimers = G.activeTimers.filter(x => !(x.role.id === onlyPing.role.id && (x.spellId || 'flash') === onlyPing.spellId));
-      G.activeTimers.push(entry);
-      G.allTimersHistory.push({ ...entry, cleanedByPlayer: false });
-
-      addInlineBadge(feedbackContainer, `❌ ${onlyPing.champ} is ${onlyPing.role.tag}, not ${timer.role.tag}!`, 'var(--wrong)');
-      addRecent(false, onlyPing.role, sec, 'Wrong Role');
+      recordEntryFromPing(wrongRolePing, canonTime);
+      addInlineBadge(feedbackContainer, `❌ ${wrongRolePing.champ} is ${wrongRolePing.role.tag}, not ${timer.role.tag}!`, 'var(--wrong)');
+      addRecent(false, wrongRolePing.role, sec, 'Wrong Role');
     }
   });
+
+  // PASS 3: Resolve any forgotten/missed pings in Teamfight Bursts so game never hangs silently
+  const leftoverPending = pending.filter(p => p.answeredAt === null);
+  if (currentMode !== 'rapid' && !G.burstSpawning && leftoverPending.length > 0 && submittedTimers.length > 0) {
+    leftoverPending.forEach(missed => {
+      anyMistakeThisMsg = true;
+      missed.answeredAt = G.t;
+      missed.correct = false;
+      G.stats.wrong++;
+
+      markPingLineResolved(missed.id);
+      const status = document.querySelector(`[data-ping-status="${missed.id}"]`);
+      const canonTime = missed.correctTime;
+      const canonLabel = formatTimerToken(canonTime, missed.role.id, missed.spellId);
+      const spName = SPELLS[missed.spellId].name;
+
+      if (status) {
+        status.textContent = `⚠️ Missed (${canonLabel})`;
+        status.style.color = 'var(--warn)';
+      }
+
+      recordEntryFromPing(missed, canonTime);
+      addInlineBadge(feedbackContainer, `⚠️ Missed ${missed.champ} (${missed.role.tag} ${spName}): ${canonLabel}`, 'var(--warn)');
+      document.getElementById('syncClipBtn').classList.remove('hidden');
+      addRecent(false, missed.role, '—', `Missed (${spName})`);
+    });
+  }
 
   // STEP 5: Audit Dropped Active & Cleaned Expired (in progressive modes)
   if (currentMode !== 'rapid') {
@@ -2025,7 +3046,7 @@ function processFullListAudit(submittedTimers, feedbackContainer) {
       const wasLeftIn = submittedTimers.some(st =>
         st.role.id === ht.role.id &&
         st.spell === (ht.spellId || 'flash') &&
-        Math.abs(st.time - ht.playerTime) <= 15
+        Math.abs(st.time - ht.playerTime) <= Math.max(earlyToleranceSec, 15)
       );
       if (!wasLeftIn) {
         ht.cleanedByPlayer = true;
@@ -2086,33 +3107,65 @@ function renderBoard() {
     const hasPending = G.pings.some(p => p.role.id === e.role.id && p.answeredAt === null);
     const spellSlotsHtml = Object.values(e.spells).map(spState => {
       const sp = SPELLS[spState.id];
+      const timing = getEffectiveSpellTiming(e, sp.id);
+      const hasteDesc = timing.hasteState !== 'none' ? ` — ${HASTE_META[timing.hasteState].label}: ${fmt(timing.cleanCd)}` : '';
       return `
         <div onclick="manualPingEnemy('${e.role.id}', '${sp.id}')"
              class="spell-slot ${spState.up ? '' : 'down'}"
              style="background:${sp.bg}; color:${sp.textDark ? '#091220' : '#F0E6D2'};"
-             title="${sp.name} (${fmt(sp.cd)} CD)${spState.up ? ' — UP (click to ping)' : ' — Down'}">
-          ${sp.icon}
+             title="${sp.name} (${fmt(timing.cleanCd)} CD${hasteDesc})${spState.up ? ' — UP (click to ping)' : ' — Down'}">
+          <img src="${getSpellIconUrl(sp.id)}" alt="${sp.name}"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span style="display:none;">${sp.icon}</span>
         </div>`;
     }).join('');
 
+    const cosmicActive = hasteEnabled && e.hasCosmic;
+    const bootsActive  = hasteEnabled && e.hasBoots;
+
+    const smiteSlotHtml = e.role.id === 'jg' ? `
+      <div class="spell-slot"
+           style="background:linear-gradient(135deg, #EA580C 0%, #9A3412 100%); color:#F0E6D2; opacity:0.55; cursor:default; border-color:#2A3548;"
+           title="Smite (15s charge) — Not timed in chat">
+        <img src="https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/spell/SummonerSmite.png" alt="Smite"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+        <span style="display:none;">🔥</span>
+      </div>` : '';
+
     return `
-      <div class="px-3.5 py-2.5 flex items-center gap-2.5"
+      <div class="px-3 py-2 flex items-center gap-2"
            style="border-bottom:1px solid rgba(30,38,52,0.65); ${hasPending ? 'background:rgba(217,163,54,0.09);border-left:3px solid var(--lol-spell);' : ''}">
-        <div class="w-7 h-7 rounded flex items-center justify-center shrink-0"
-             style="background:${e.role.c}16; color:${e.role.c}; border:1px solid ${e.role.c}35;"
-             title="${e.role.label}">
-          ${ROLE_SVGS[e.role.id]}
+        <div class="w-8 h-8 rounded overflow-hidden flex items-center justify-center shrink-0"
+             style="background:${e.role.c}16; color:${e.role.c}; border:1px solid ${e.role.c}45;"
+             title="${e.champ} (${e.role.label})">
+          <img src="${getChampIconUrl(e.champ)}" alt="${e.champ}" class="w-full h-full object-cover"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <span style="display:none;" class="w-full h-full items-center justify-center">${ROLE_SVGS[e.role.id]}</span>
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-xs font-bold truncate" style="color:var(--text-bright);">${e.champ}</div>
-          <div class="text-[11px] flex items-center gap-1.5 mt-0.5" style="color:var(--text-light);">
+          <div class="text-[11px] flex items-center gap-1 mt-0.5" style="color:var(--text-light);">
             <span class="font-semibold" style="color:${e.role.c};">${e.role.tag}</span>
             <span>·</span>
             <span class="truncate" style="color:#526074;">${e.gamerTag}</span>
           </div>
         </div>
+        <div class="flex flex-col gap-0.5 shrink-0" title="Click to toggle Cosmic Insight (+18) or Ionian Boots (+10)">
+          <div onclick="toggleEnemyHaste('${e.role.id}', 'cosmic')"
+               class="haste-badge ${cosmicActive ? 'active' : 'inactive'}"
+               title="Cosmic Insight (+18 Haste) — Click to toggle">
+            <img src="${COSMIC_ICON_URL}" alt="Cosmic" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+            <span style="display:none; color:#22D3EE;">C</span>
+          </div>
+          <div onclick="toggleEnemyHaste('${e.role.id}', 'boots')"
+               class="haste-badge ${bootsActive ? 'active' : 'inactive'}"
+               title="Ionian Boots of Lucidity (+10 Haste) — Click to toggle">
+            <img src="${getBootsIconUrl()}" alt="Boots" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+            <span style="display:none; color:#60A5FA;">B</span>
+          </div>
+        </div>
         <div class="flex items-center gap-1 shrink-0">
-          ${spellSlotsHtml}
+          ${spellSlotsHtml}${smiteSlotHtml}
         </div>
       </div>`;
   }).join('');
@@ -2143,7 +3196,8 @@ function renderTimers() {
   el.innerHTML = G.activeTimers.map(t => {
     const sp = SPELLS[t.spellId || 'flash'] || SPELLS.flash;
     const rem = Math.max(0, t.expiresAt - G.t);
-    const pct = Math.max(0, Math.min(100, Math.round((1 - rem / sp.cd) * 100)));
+    const totalCd = t.cdDuration || sp.cd;
+    const pct = Math.max(0, Math.min(100, Math.round((1 - rem / totalCd) * 100)));
     const warn = rem <= 50;
     return `
       <div>
@@ -2291,10 +3345,25 @@ chatInputEl.addEventListener('copy', () => {
   }
 });
 
+document.getElementById('quizInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitQuizInput();
+  }
+});
+
 document.addEventListener('keydown', e => {
-  // Ignore global shortcuts if Roster Modal is open
+  // Ignore global shortcuts if any Modal is open
   if (!document.getElementById('rosterModal').classList.contains('hidden')) {
     if (e.key === 'Escape') toggleRosterModal();
+    return;
+  }
+  if (!document.getElementById('rulesModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') toggleRulesModal();
+    return;
+  }
+  if (!document.getElementById('cheatSheetModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') toggleCheatSheetModal();
     return;
   }
 
@@ -2302,6 +3371,39 @@ document.addEventListener('keydown', e => {
     if (e.key === ' ' && !M.on) {
       e.preventDefault();
       startMathSprint();
+    } else if (e.key === 'Enter' && M.on) {
+      const inp = document.getElementById('mathInput');
+      const parsed = parseTime(inp.value);
+      if (parsed !== null) {
+        e.preventDefault();
+        const elapsedSec = ((Date.now() - M.askedAtMs) / 1000).toFixed(2);
+        const fb = document.getElementById('mathLastFeedback');
+        const expectedCompact = fmtCompact(M.targetSec);
+        if (evaluateTiming(parsed, M.targetSec).ok) {
+          M.score++;
+          M.reactions.push(parseFloat(elapsedSec));
+          document.getElementById('mathScore').textContent = M.score;
+          const avg = (M.reactions.reduce((a, b) => a + b, 0) / M.reactions.length).toFixed(2);
+          document.getElementById('mathAvgMs').textContent = avg + 's';
+          fb.style.color = 'var(--correct)';
+          fb.textContent = `✅ ${expectedCompact} (${elapsedSec}s)`;
+          inp.value = '';
+          nextMathPrompt();
+        } else {
+          const cdStr = M.spell ? fmt(M.spell.cd) : '5:00';
+          fb.style.color = 'var(--wrong)';
+          fb.textContent = `❌ ${fmtChat(M.promptSec)} + ${cdStr} = ${expectedCompact}`;
+          inp.value = '';
+        }
+      }
+    }
+    return;
+  }
+
+  if (currentMode === 'quiz') {
+    if (e.key === ' ' && document.activeElement !== document.getElementById('quizInput')) {
+      e.preventDefault();
+      nextQuizQuestion();
     }
     return;
   }
@@ -2345,10 +3447,16 @@ document.addEventListener('keydown', e => {
 });
 
 // ===================== INIT =====================
-[1, 2, 3, 4].forEach(n => {
+[1, 2, 3].forEach(n => {
   const btn = document.getElementById('lvl-' + n);
   if (btn) btn.classList.toggle('active', n === spellLevel);
 });
+updateRulesSummaryUI();
+updateHasteToggleUI();
+const feedWrapperEl = document.getElementById('chatFeedWrapper');
+if (feedWrapperEl && typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(() => scrollChatToBottom()).observe(feedWrapperEl);
+}
 renderBoard();
 renderStats();
 renderTimers();
