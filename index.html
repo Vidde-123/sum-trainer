@@ -2,6 +2,8 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#010A13">
   <title>Sum Tracker Trainer — Competitive LoL Cooldown Suite</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <script>
@@ -37,14 +39,24 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     .hidden { display: none !important; }
 
+    html, body {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: var(--bg-dark);
       color: var(--text-light);
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       user-select: none;
     }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .mono { font-family: 'Consolas', 'Cascadia Code', 'JetBrains Mono', monospace; }
 
@@ -225,99 +237,116 @@
   <div class="flex flex-col h-screen">
 
     <!-- ========== TOP BAR ========== -->
-    <header class="flex items-center justify-between px-3 py-2 gap-2"
-            style="background: var(--bg-panel); border-bottom: 1px solid var(--border-gold);">
-      <!-- Left: Brand + 5 Training Modes -->
-      <div class="flex items-center gap-2 shrink-0">
-        <div class="flex items-center gap-1">
-          <span class="text-sm font-bold tracking-wide whitespace-nowrap" style="color: var(--gold);">⚡ SUM TRAINER</span>
+    <header class="flex flex-col shrink-0" style="background: var(--bg-panel); border-bottom: 1px solid var(--border-gold);">
+      <!-- Top Tier: Brand + Clock + Primary Action Buttons -->
+      <div class="flex items-center justify-between px-2.5 sm:px-4 py-1.5 sm:py-2 gap-2">
+        <!-- Left: Brand -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap" style="color: var(--gold);">⚡ <span class="hidden sm:inline">SUM </span>TRAINER</span>
         </div>
 
-        <div class="flex items-center gap-0.5 p-1 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
-          <button id="mode-instant" onclick="setMode('instant')" class="mode-btn active"
-                  title="Progressive game clock with full clipboard auditing: keep active timers, delete expired ones, add new ones">
-            ⚡ Instant Jumps
-          </button>
-          <button id="mode-burst" onclick="setMode('burst')" class="mode-btn"
-                  title="2-4 flashes popped in a skirmish/teamfight + full clipboard auditing">
-            ⚔️ Teamfight Bursts
-          </button>
-          <button id="mode-rapid" onclick="setMode('rapid')" class="mode-btn"
-                  title="Single-ping chat reps at random timestamps (no clipboard carryover)">
-            🎯 Rapid Solo
-          </button>
-          <button id="mode-math" onclick="setMode('math')" class="mode-btn"
-                  title="60-second pure mental math sprint (instant 4-digit auto-submit)">
-            🧠 60s Math Sprint
-          </button>
-          <button id="mode-quiz" onclick="setMode('quiz')" class="mode-btn"
-                  title="Practice Cosmic Insight (+18) & Ionian Boots (+10) cooldown math">
-            🎓 Haste Quiz
-          </button>
-        </div>
-      </div>
-
-      <!-- Center: Game Clock + Jump Indicator -->
-      <div class="flex items-center gap-2">
-        <div class="flex flex-col items-center">
-          <div class="flex items-center gap-2">
-            <div class="mono text-2xl font-bold tracking-wider stat-num" id="clock" style="color: var(--text-bright);">
+        <!-- Center: Game Clock + Jump Indicator -->
+        <div class="flex flex-col items-center shrink-0">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <div class="mono text-xl sm:text-2xl font-bold tracking-wider stat-num" id="clock" style="color: var(--text-bright);">
               00:00
             </div>
-            <span id="jumpBadge" class="mono text-xs px-2 py-0.5 rounded font-semibold hidden"
+            <span id="jumpBadge" class="mono text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded font-semibold hidden"
                   style="background: rgba(200, 155, 60, 0.18); color: var(--gold); border: 1px solid var(--border-highlight);">
               ⏭ +1:30
             </span>
           </div>
-          <div id="clockSub" class="text-[10px] tracking-wider uppercase whitespace-nowrap" style="color: #4A5568;">
+          <div id="clockSub" class="text-[9px] sm:text-[10px] tracking-wider uppercase whitespace-nowrap hidden sm:block" style="color: #4A5568;">
             Full List Audit · Keep Active &amp; Purge Expired
           </div>
         </div>
+
+        <!-- Right: Action Buttons (Responsive sizing) -->
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <button id="btnNext" onclick="manualNext()" class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded text-[11px] sm:text-xs font-medium hidden whitespace-nowrap"
+                  style="background: #131E32; border: 1px solid #2A3A54; color: var(--text-bright); cursor: pointer;"
+                  title="Skip to next ping/fight immediately (Shortcut: Space)">
+            ⏭ <span class="hidden sm:inline">Next </span><span class="key-cap ml-0.5 hidden md:inline">Space</span>
+          </button>
+
+          <button id="btnStart" onclick="toggleGame()" class="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded text-xs font-semibold tracking-wide whitespace-nowrap"
+                  style="background: var(--gold); color: var(--bg-dark); border: none; cursor: pointer;">
+            START
+          </button>
+
+          <button onclick="toggleCheatSheetModal()" class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded text-[11px] sm:text-xs whitespace-nowrap"
+                  style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-bright); cursor: pointer;"
+                  title="Summoner Spell Cooldown & Haste Cheat Sheet">
+            📖 <span class="hidden sm:inline">Cheat </span>Sheet
+          </button>
+
+          <button id="rulesBtn" onclick="toggleRulesModal()" class="px-2 py-1 sm:px-2 sm:py-1.5 rounded text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap hidden md:flex"
+                  style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                  title="Customize your early (safe) and late (danger) timing tolerance rules">
+            <span>🎯 Rules:</span>
+            <span id="rulesSummaryLabel" class="mono font-semibold" style="color: var(--gold);">-20s / +3s</span>
+          </button>
+
+          <button onclick="toggleRosterModal()" class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded text-[11px] sm:text-xs whitespace-nowrap"
+                  style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                  title="Customize your 5-man team gamer tags and timer format preference">
+            ⚙️ <span class="hidden sm:inline">Team</span>
+          </button>
+
+          <button onclick="resetGame()" class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded text-[11px] sm:text-xs whitespace-nowrap"
+                  style="background: transparent; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
+                  title="Roll a new 5v5 champion draft and reset session stats">
+            🎲 <span class="hidden sm:inline">DRAFT</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Right: Custom Rules + Cheat Sheet + Team Settings + Action Buttons -->
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button id="rulesBtn" onclick="toggleRulesModal()" class="px-2 py-1.5 rounded text-xs flex items-center gap-1 whitespace-nowrap"
-                style="background: var(--bg-dark); border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
-                title="Customize your early (safe) and late (danger) timing tolerance rules">
-          <span>🎯 Rules:</span>
-          <span id="rulesSummaryLabel" class="mono font-semibold" style="color: var(--gold);">-20s / +3s</span>
+      <!-- Bottom Tier: Mode Selector Tabs (Smooth horizontal scrolling on mobile, centered on desktop) -->
+      <div class="px-2 sm:px-3 py-1 flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar gap-1"
+           style="background: var(--bg-dark); border-top: 1px solid rgba(27, 36, 50, 0.7);">
+        <button id="mode-instant" onclick="setMode('instant')" class="mode-btn active"
+                title="Progressive game clock with full clipboard auditing">
+          ⚡ Instant Jumps
         </button>
-
-        <button onclick="toggleCheatSheetModal()" class="px-2 py-1.5 rounded text-xs whitespace-nowrap"
-                style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-bright); cursor: pointer;"
-                title="Summoner Spell Cooldown & Haste Cheat Sheet">
-          📖 Cheat Sheet
+        <button id="mode-burst" onclick="setMode('burst')" class="mode-btn"
+                title="2-4 flashes popped in a skirmish/teamfight">
+          ⚔️ Teamfight Bursts
         </button>
-
-        <button onclick="toggleRosterModal()" class="px-2 py-1.5 rounded text-xs whitespace-nowrap"
-                style="background: #0F1A2C; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
-                title="Customize your 5-man team gamer tags and timer format preference">
-          ⚙️ Team
+        <button id="mode-rapid" onclick="setMode('rapid')" class="mode-btn"
+                title="Single-ping chat reps at random timestamps">
+          🎯 Rapid Solo
         </button>
-
-        <button id="btnNext" onclick="manualNext()" class="px-2.5 py-1.5 rounded text-xs font-medium hidden whitespace-nowrap"
-                style="background: #131E32; border: 1px solid #2A3A54; color: var(--text-bright); cursor: pointer;"
-                title="Skip to next ping/fight immediately (Shortcut: Space)">
-          ⏭ Next <span class="key-cap ml-0.5">Space</span>
+        <button id="mode-math" onclick="setMode('math')" class="mode-btn"
+                title="60-second pure mental math sprint (auto-submits on 4 digits)">
+          🧠 60s Math Sprint
         </button>
-        <button id="btnStart" onclick="toggleGame()" class="px-3.5 py-1.5 rounded text-xs font-semibold tracking-wide whitespace-nowrap"
-                style="background: var(--gold); color: var(--bg-dark); border: none; cursor: pointer;">
-          START
-        </button>
-        <button onclick="resetGame()" class="px-2.5 py-1.5 rounded text-xs whitespace-nowrap"
-                style="background: transparent; border: 1px solid var(--border-gold); color: var(--text-light); cursor: pointer;"
-                title="Roll a new 5v5 champion draft and reset session stats">
-          NEW DRAFT
+        <button id="mode-quiz" onclick="setMode('quiz')" class="mode-btn"
+                title="Practice Cosmic Insight (+18) & Ionian Boots (+10) cooldown math">
+          🎓 Haste Quiz
         </button>
       </div>
     </header>
 
+    <!-- Mobile Sub-Navigation Bar (Only for Chat tracking mode on screens < 1024px) -->
+    <div id="mobileTabBar" class="flex lg:hidden items-center justify-around px-2 py-1 shrink-0"
+         style="background: #08111D; border-bottom: 1px solid var(--border-gold);">
+      <button id="mobTabChat" onclick="setMobileTab('chat')" class="mode-btn active flex items-center gap-1.5 py-1 px-3">
+        <span>💬 Chat &amp; Input</span>
+      </button>
+      <button id="mobTabScoreboard" onclick="setMobileTab('scoreboard')" class="mode-btn flex items-center gap-1.5 py-1 px-3">
+        <span>📋 TAB Scoreboard</span>
+      </button>
+      <button id="mobTabTimers" onclick="setMobileTab('timers')" class="mode-btn flex items-center gap-1.5 py-1 px-3">
+        <span>⏱️ Active &amp; Stats</span>
+        <span id="mobActiveBadge" class="mono text-[10px] px-1.5 py-0.2 rounded font-bold" style="background:#1A2638; color:var(--gold);">0</span>
+      </button>
+    </div>
+
     <!-- ========== MAIN ========== -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden" id="appMainRow">
 
       <!-- LEFT: TAB Scoreboard & Pro Cleanup Guide -->
-      <aside class="flex flex-col" style="width: 265px; background: var(--bg-panel); border-right: 1px solid var(--border-gold);">
+      <aside id="leftSidebar" class="hidden lg:flex flex-col w-full lg:w-[265px] shrink-0" style="background: var(--bg-panel); border-right: 1px solid var(--border-gold);">
         <div class="px-4 py-2 text-xs font-semibold tracking-wider flex items-center justify-between"
              style="color: var(--lol-enemy); border-bottom: 1px solid var(--border-gold);">
           <span>TAB SCOREBOARD (ENEMY)</span>
@@ -367,69 +396,69 @@
         </div>
       </aside>
 
-      <!-- CENTER: Authentic In-Game Chat Feed OR 60s Math Sprint -->
-      <main class="flex-1 flex flex-col min-h-0 overflow-hidden rift-backdrop relative">
+      <!-- CENTER: Authentic In-Game Chat Feed OR 60s Math Sprint OR Haste Quiz -->
+      <main id="mainContent" class="flex-1 flex flex-col min-h-0 overflow-hidden rift-backdrop relative w-full">
 
         <!-- Sub-banner: Spell Level Progression + Haste Toggle + Status -->
-        <div class="px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0"
+        <div id="subBanner" class="px-2.5 sm:px-4 py-1.5 sm:py-2 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 text-xs shrink-0"
              style="background: rgba(1, 10, 19, 0.78); border-bottom: 1px solid var(--border-gold);">
-          <div class="flex items-center gap-2 shrink-0">
-            <span class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--gold-dim);">Spells:</span>
-            <div class="flex items-center gap-1 p-0.5 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
-              <button id="lvl-1" onclick="setSpellLevel(1)" class="mode-btn active" style="padding: 3px 8px;" title="Level 1 (Core): 5:00 spells — Flash & Teleport">
-                Lvl 1: Core 5m (F / TP)
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider" style="color: var(--gold-dim);">Spells:</span>
+            <div class="flex items-center gap-0.5 sm:gap-1 p-0.5 rounded" style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
+              <button id="lvl-1" onclick="setSpellLevel(1)" class="mode-btn active" style="padding: 3px 6px;" title="Level 1 (Core): 5:00 spells — Flash & Teleport">
+                Lvl 1 <span class="hidden sm:inline">: Core 5m (F/TP)</span>
               </button>
-              <button id="lvl-2" onclick="setSpellLevel(2)" class="mode-btn" style="padding: 3px 8px;" title="Level 2 (Meta): Adds 4:00 spells — Heal, Exhaust, Cleanse, Ghost (+ Hecarim/Olaf Ghost Jg)">
-                Lvl 2: Meta +4m (Cln / Exh / Gh / Heal)
+              <button id="lvl-2" onclick="setSpellLevel(2)" class="mode-btn" style="padding: 3px 6px;" title="Level 2 (Meta): Adds 4:00 spells — Heal, Exhaust, Cleanse, Ghost">
+                Lvl 2 <span class="hidden sm:inline">: Meta +4m</span>
               </button>
-              <button id="lvl-3" onclick="setSpellLevel(3)" class="mode-btn" style="padding: 3px 8px;" title="Level 3 (All): Unlocks 3:00 Barrier (ADC default) & Ignite (Mid/Sup/Top)">
-                Lvl 3: All +3m (Bar / Ign)
+              <button id="lvl-3" onclick="setSpellLevel(3)" class="mode-btn" style="padding: 3px 6px;" title="Level 3 (All): Unlocks 3:00 Barrier & Ignite">
+                Lvl 3 <span class="hidden sm:inline">: All +3m</span>
               </button>
             </div>
             <button id="hasteToggleBtn" onclick="toggleHasteEnabled()" class="mode-btn"
-                    style="padding: 3px 9px; border: 1px solid var(--border-gold); background: var(--bg-dark);"
+                    style="padding: 3px 8px; border: 1px solid var(--border-gold); background: var(--bg-dark);"
                     title="Enable Cosmic Insight (+18 Haste) & Ionian Boots (+10 Haste) on enemy scoreboard">
-              🌀 Haste: OFF
+              🌀 <span class="hidden sm:inline">Haste: </span>OFF
             </button>
           </div>
 
-          <div id="modeDesc" class="truncate text-[11px]" style="color: var(--text-light);">
+          <div id="modeDesc" class="truncate text-[10px] sm:text-[11px] hidden md:block" style="color: var(--text-light);">
             Flash = no tag (<code class="mono" style="color:var(--text-bright);">620top</code>) · Others need tag (<code class="mono" style="color:var(--gold);">1945mid tp</code> / <code class="mono" style="color:var(--gold);">1945midtp</code>)
           </div>
 
-          <div class="flex items-center gap-2 shrink-0">
-            <button id="syncClipBtn" onclick="syncClipboardToCanonical()" class="mono text-[11px] px-2 py-0.5 rounded hidden"
+          <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button id="syncClipBtn" onclick="syncClipboardToCanonical()" class="mono text-[10px] sm:text-[11px] px-2 py-0.5 rounded hidden"
                     style="background: rgba(20, 184, 166, 0.14); color: var(--teal); border: 1px solid rgba(20, 184, 166, 0.4); cursor: pointer;"
                     title="Repair your clipboard to match all current active timers">
-              🔄 Sync Clipboard
+              🔄 <span class="hidden sm:inline">Sync Clipboard</span>
             </button>
-            <div id="pendingBadge" class="mono text-xs px-2 py-0.5 rounded hidden"
+            <div id="pendingBadge" class="mono text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded hidden"
                  style="background: rgba(217, 163, 54, 0.15); color: var(--lol-spell); border: 1px solid rgba(217, 163, 54, 0.35);">
-              1 unlogged spell
+              1 unlogged
             </div>
           </div>
         </div>
 
         <!-- 60s Mental Math Sprint View (Hidden unless in 'math' mode) -->
-        <div id="mathSprintView" class="flex-1 flex flex-col items-center justify-center p-6 hidden">
-          <div class="w-full max-w-md p-6 rounded-xl text-center space-y-5"
+        <div id="mathSprintView" class="flex-1 flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 hidden overflow-y-auto w-full">
+          <div class="w-full max-w-md p-4 sm:p-6 rounded-xl text-center space-y-4 sm:space-y-5 my-auto"
                style="background: rgba(9, 18, 32, 0.92); border: 1px solid var(--border-highlight); box-shadow: 0 12px 32px rgba(0,0,0,0.6);">
             <div class="flex items-center justify-between text-xs uppercase tracking-wider" style="color: var(--text-light);">
-              <span>🧠 Mental Math Sprint</span>
+              <span class="font-semibold">🧠 Mental Math Sprint</span>
               <span class="mono" style="color: var(--gold);">Best: <strong id="mathBestScore">0</strong></span>
             </div>
 
             <div>
               <div id="mathSpellLabel" class="text-xs mb-1 font-semibold" style="color: var(--flash-color);">⚡ Flash (+5:00) Pinged At</div>
-              <div id="mathPromptTime" class="mono text-5xl font-bold tracking-wider" style="color: var(--text-bright);">
+              <div id="mathPromptTime" class="mono text-4xl sm:text-5xl font-bold tracking-wider" style="color: var(--text-bright);">
                 --:--
               </div>
               <div id="mathLastFeedback" class="mono text-xs mt-2 h-4" style="color: var(--correct);"></div>
             </div>
 
             <div>
-              <input type="text" id="mathInput" maxlength="5"
-                     class="chat-input w-48 text-center py-2.5 px-4 rounded-lg mono text-2xl font-bold tracking-widest"
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="mathInput" maxlength="5"
+                     class="chat-input w-44 sm:w-48 text-center py-2 sm:py-2.5 px-4 rounded-lg mono text-2xl font-bold tracking-widest"
                      placeholder="1935" autocomplete="off" spellcheck="false" />
               <div class="text-[11px] mt-2" style="color: #526074;">
                 Type the 4-digit cooldown time (e.g. <span class="mono" style="color:var(--text-light);">14:35</span> → <span class="mono" style="color:var(--gold);">1935</span>) · Auto-submits!
@@ -439,63 +468,63 @@
             <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border-gold);">
               <div>
                 <div class="text-[11px]" style="color: var(--text-light);">Score</div>
-                <div id="mathScore" class="mono text-xl font-bold" style="color: var(--correct);">0</div>
+                <div id="mathScore" class="mono text-lg sm:text-xl font-bold" style="color: var(--correct);">0</div>
               </div>
               <div>
                 <div class="text-[11px]" style="color: var(--text-light);">Time Left</div>
-                <div id="mathTimeLeft" class="mono text-xl font-bold" style="color: var(--gold);">60s</div>
+                <div id="mathTimeLeft" class="mono text-lg sm:text-xl font-bold" style="color: var(--gold);">60s</div>
               </div>
               <div>
                 <div class="text-[11px]" style="color: var(--text-light);">Avg Reaction</div>
-                <div id="mathAvgMs" class="mono text-xl font-bold" style="color: var(--text-bright);">—</div>
+                <div id="mathAvgMs" class="mono text-lg sm:text-xl font-bold" style="color: var(--text-bright);">—</div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Cosmic Insight & Ionian Boots Quiz View (Hidden unless in 'quiz' mode) -->
-        <div id="hasteQuizView" class="flex-1 flex flex-col items-center justify-center p-6 hidden overflow-y-auto">
-          <div class="w-full max-w-lg p-6 rounded-xl text-center space-y-4"
+        <div id="hasteQuizView" class="flex-1 flex flex-col items-center justify-start sm:justify-center p-3 sm:p-5 md:p-6 hidden overflow-y-auto w-full">
+          <div class="w-full max-w-xl p-3.5 sm:p-5 md:p-6 rounded-xl text-center space-y-3 sm:space-y-4 my-auto"
                style="background: rgba(9, 18, 32, 0.94); border: 1px solid var(--border-highlight); box-shadow: 0 12px 32px rgba(0,0,0,0.6);">
             <div class="flex items-center justify-between text-xs uppercase tracking-wider" style="color: var(--text-light);">
-              <span>🎓 Cosmic Insight &amp; Ionian Boots Quiz</span>
-              <div class="flex items-center gap-2">
-                <button onclick="toggleCheatSheetModal()" class="px-2 py-0.5 rounded text-[11px] font-semibold normal-case"
+              <span class="font-semibold text-[11px] sm:text-xs">🎓 Cosmic &amp; Ionian Quiz</span>
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <button onclick="toggleCheatSheetModal()" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold normal-case"
                         style="background: #131F33; border: 1px solid var(--border-gold); color: var(--gold); cursor: pointer;">
                   📖 Cheat Sheet
                 </button>
-                <span class="mono" style="color: var(--gold);">Best: <strong id="quizBestScore">0</strong></span>
+                <span class="mono text-xs sm:text-sm" style="color: var(--gold);">Best: <strong id="quizBestScore">0</strong></span>
               </div>
             </div>
 
             <!-- Quiz Controls: Question Type & Spell Scope -->
-            <div class="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg text-[11px]"
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg text-[11px]"
                  style="background: var(--bg-dark); border: 1px solid var(--border-gold);">
-              <div class="flex items-center gap-1">
-                <button id="qtype-lookup" onclick="setQuizSubMode('lookup')" class="mode-btn active" style="padding: 3px 8px;">
+              <div class="grid grid-cols-2 gap-1 sm:flex sm:items-center">
+                <button id="qtype-lookup" onclick="setQuizSubMode('lookup')" class="mode-btn active text-center" style="padding: 5px 8px;">
                   🎯 Cooldown Lookup
                 </button>
-                <button id="qtype-math" onclick="setQuizSubMode('math')" class="mode-btn" style="padding: 3px 8px;">
-                  ⏱️ Ping + Haste Math
+                <button id="qtype-math" onclick="setQuizSubMode('math')" class="mode-btn text-center" style="padding: 5px 8px;">
+                  ⏱️ Ping + Math
                 </button>
               </div>
-              <div class="flex items-center gap-1">
-                <button id="qscope-5m" onclick="setQuizScope('5m')" class="mode-btn active" style="padding: 3px 8px;">
-                  Core (F / TP)
+              <div class="grid grid-cols-3 gap-1 sm:flex sm:items-center">
+                <button id="qscope-5m" onclick="setQuizScope('5m')" class="mode-btn active text-center" style="padding: 5px 6px;">
+                  Core (5m)
                 </button>
-                <button id="qscope-meta" onclick="setQuizScope('meta')" class="mode-btn" style="padding: 3px 8px;">
-                  Meta (+Cln/Exh/Gh/H)
+                <button id="qscope-meta" onclick="setQuizScope('meta')" class="mode-btn text-center" style="padding: 5px 6px;">
+                  Meta (+4m)
                 </button>
-                <button id="qscope-all" onclick="setQuizScope('all')" class="mode-btn" style="padding: 3px 8px;">
+                <button id="qscope-all" onclick="setQuizScope('all')" class="mode-btn text-center" style="padding: 5px 6px;">
                   All Spells
                 </button>
               </div>
             </div>
 
             <!-- Question Display -->
-            <div class="p-4 rounded-lg space-y-3" style="background: rgba(4, 10, 18, 0.9); border: 1px solid #162234;">
-              <div id="quizPromptHeader" class="flex items-center justify-center gap-3"></div>
-              <div id="quizMainPrompt" class="mono text-3xl font-bold tracking-wider" style="color: var(--text-bright);">
+            <div class="p-3 sm:p-4 rounded-lg space-y-2 sm:space-y-3" style="background: rgba(4, 10, 18, 0.9); border: 1px solid #162234;">
+              <div id="quizPromptHeader" class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2"></div>
+              <div id="quizMainPrompt" class="mono text-2xl sm:text-3xl md:text-4xl font-bold tracking-wider" style="color: var(--text-bright);">
                 --:--
               </div>
               <div id="quizSubPrompt" class="text-xs" style="color: var(--text-light);">
@@ -504,46 +533,46 @@
             </div>
 
             <!-- Multiple Choice Options -->
-            <div id="quizChoices" class="grid grid-cols-2 gap-2.5"></div>
+            <div id="quizChoices" class="grid grid-cols-2 gap-2 sm:gap-3"></div>
 
             <!-- Keyboard Input Alternative -->
             <div class="flex items-center justify-center gap-2 pt-1">
-              <input type="text" id="quizInput" maxlength="5"
-                     class="chat-input w-44 text-center py-2 px-3 rounded-lg mono text-lg font-bold tracking-widest"
-                     placeholder="e.g. 415 or 1145" autocomplete="off" spellcheck="false" />
-              <button onclick="submitQuizInput()" class="px-4 py-2 rounded-lg text-xs font-semibold"
+              <input type="text" inputmode="numeric" pattern="[0-9]*" id="quizInput" maxlength="5"
+                     class="chat-input w-36 sm:w-44 text-center py-2 px-3 rounded-lg mono text-lg font-bold tracking-widest"
+                     placeholder="e.g. 415" autocomplete="off" spellcheck="false" />
+              <button onclick="submitQuizInput()" class="px-4 py-2 rounded-lg text-xs font-semibold min-h-[40px]"
                       style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
                 Check (Enter)
               </button>
             </div>
 
             <!-- Feedback Banner -->
-            <div id="quizFeedback" class="mono text-xs min-h-[20px] font-semibold"></div>
+            <div id="quizFeedback" class="mono text-xs min-h-[22px] font-semibold flex items-center justify-center"></div>
 
             <!-- Stats Footer -->
-            <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border-gold);">
+            <div class="grid grid-cols-3 gap-2 pt-2.5 sm:pt-3" style="border-top: 1px solid var(--border-gold);">
               <div>
-                <div class="text-[11px]" style="color: var(--text-light);">Correct</div>
-                <div id="quizScore" class="mono text-xl font-bold" style="color: var(--correct);">0</div>
+                <div class="text-[10px] sm:text-[11px]" style="color: var(--text-light);">Correct</div>
+                <div id="quizScore" class="mono text-lg sm:text-xl font-bold" style="color: var(--correct);">0</div>
               </div>
               <div>
-                <div class="text-[11px]" style="color: var(--text-light);">Streak</div>
-                <div id="quizStreak" class="mono text-xl font-bold" style="color: var(--gold);">0</div>
+                <div class="text-[10px] sm:text-[11px]" style="color: var(--text-light);">Streak</div>
+                <div id="quizStreak" class="mono text-lg sm:text-xl font-bold" style="color: var(--gold);">0</div>
               </div>
               <div>
-                <div class="text-[11px]" style="color: var(--text-light);">Accuracy</div>
-                <div id="quizAcc" class="mono text-xl font-bold" style="color: var(--text-bright);">—</div>
+                <div class="text-[10px] sm:text-[11px]" style="color: var(--text-light);">Accuracy</div>
+                <div id="quizAcc" class="mono text-lg sm:text-xl font-bold" style="color: var(--text-bright);">—</div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- League In-Game Chat Stream -->
-        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col" id="chatFeedWrapper">
-          <div id="eventArea" class="lol-chat-feed space-y-0.5 mt-auto pr-2">
+        <div class="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 flex flex-col" id="chatFeedWrapper">
+          <div id="eventArea" class="lol-chat-feed space-y-0.5 mt-auto pr-1 sm:pr-2">
             <!-- Welcome screen inside the chat area -->
             <div id="welcome" class="my-auto py-6 text-center max-w-lg mx-auto" style="text-shadow: none;">
-              <div class="text-2xl mb-1.5 font-semibold" style="color: var(--gold);">⚡ Competitive Summoner Spell Trainer</div>
+              <div class="text-xl sm:text-2xl mb-1.5 font-semibold" style="color: var(--gold);">⚡ Competitive Summoner Spell Trainer</div>
               <div class="text-xs mb-4 leading-relaxed" style="color: var(--text-light);">
                 Starts at <span class="mono" style="color:var(--text-bright);">~05:30</span> with <strong style="color: var(--text-bright);">2 active timers pre-loaded on your clipboard</strong> so you immediately practice pasting, stripping expired timers from the front, and appending new ones at the end.
               </div>
@@ -586,51 +615,70 @@
         <!-- Bottom Chat Input Bar -->
         <div id="chatContainer" class="shrink-0" style="background: #060C14; border-top: 1px solid var(--border-gold);">
           <!-- Clipboard helper bar -->
-          <div class="px-5 py-1.5 flex items-center justify-between text-xs"
+          <div class="px-3 sm:px-5 py-1.5 flex items-center justify-between text-xs"
                style="background: #04080E; border-bottom: 1px solid #101824;">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <span style="color: var(--gold-dim); font-weight: 600;">📋 CLIPBOARD:</span>
-              <div id="clipboardPreview" class="mono flex items-center gap-1.5 truncate" style="color: var(--text-bright);">
+            <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+              <span class="shrink-0" style="color: var(--gold-dim); font-weight: 600;">📋 <span class="hidden sm:inline">CLIPBOARD:</span></span>
+              <div id="clipboardPreview" class="mono flex items-center gap-1.5 truncate text-[11px] sm:text-xs" style="color: var(--text-bright);">
                 <span style="color: #2A3444;">Empty</span>
               </div>
             </div>
-            <div class="flex items-center gap-3 shrink-0 ml-2">
-              <span id="copyHabitBadge" class="mono text-[11px] px-1.5 py-0.5 rounded hidden"
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
+              <span id="copyHabitBadge" class="mono text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded hidden"
                     style="background: rgba(29, 185, 84, 0.15); color: var(--correct); border: 1px solid rgba(29, 185, 84, 0.35);">
                 📋 Ctrl+C ✔
               </span>
-              <span class="text-[11px]" style="color: #465264;">Ctrl+V to paste</span>
+              <button type="button" onclick="copyCurrentInput()" class="mono text-[10px] sm:text-[11px] px-2 py-0.5 rounded"
+                      style="background:#101B2B; border:1px solid #23344C; color:var(--text-light); cursor:pointer;"
+                      title="Copy full current clipboard or input">
+                Copy
+              </button>
             </div>
           </div>
 
-          <!-- Input row (hidden until Enter) -->
-          <div id="chatRow" class="px-5 hidden">
-            <div class="flex items-center gap-2.5 w-full" style="height: 58px;">
+          <!-- Input row (hidden until Enter or Tap) -->
+          <div id="chatRow" class="px-2.5 sm:px-5 py-1.5 sm:py-0 hidden">
+            <div class="flex items-center gap-1.5 sm:gap-2.5 w-full min-h-[50px] sm:h-[58px]">
               <!-- Live inline clock right next to chat input so eyes stay focused here! -->
-              <span id="inlineChatClock" class="mono text-xs px-2 py-1 rounded font-bold"
+              <span id="inlineChatClock" class="mono text-xs px-2 py-1 rounded font-bold shrink-0"
                     style="background: #0D1726; border: 1px solid #1E2E46; color: var(--gold);"
                     title="Current Game Time — any clipboard timer ≤ this time is expired!">
                 00:00
               </span>
-              <span class="text-xs font-semibold" style="color: var(--lol-ally);">[Party]</span>
+              <span class="text-xs font-semibold shrink-0 hidden sm:inline" style="color: var(--lol-ally);">[Party]</span>
               <input type="text" id="chatInput"
-                     class="chat-input flex-1 px-3 py-2 rounded mono"
-                     placeholder="1945mid tp · 620top · Ctrl+V to paste..."
+                     class="chat-input flex-1 px-2.5 sm:px-3 py-2 rounded mono text-sm sm:text-base min-w-0"
+                     placeholder="1945mid tp · 620top · Paste..."
                      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" onclick="pasteClipboardToInput()" class="px-2 sm:px-2.5 py-1.5 rounded text-xs shrink-0"
+                      style="background:#132034; border:1px solid #283C58; color:var(--text-bright); cursor:pointer;"
+                      title="Paste saved clipboard into chat">
+                📋 <span class="hidden sm:inline">Paste</span>
+              </button>
+              <button type="button" onclick="sendChat()" class="px-2.5 sm:px-3.5 py-1.5 rounded text-xs font-bold shrink-0"
+                      style="background:var(--gold); color:var(--bg-dark); border:none; cursor:pointer;"
+                      title="Send message (Enter)">
+                Send ↵
+              </button>
+              <button type="button" onclick="closeChat()" class="px-2 py-1.5 rounded text-xs shrink-0 sm:hidden"
+                      style="background:#151A24; color:var(--text-light); border:1px solid #243042; cursor:pointer;"
+                      title="Close chat input">
+                ✕
+              </button>
             </div>
           </div>
 
           <!-- Hint bar (exact same fixed height so opening chat never shifts/covers pings!) -->
-          <div id="chatHint" class="text-xs" style="color: #465264;">
-            <div class="flex items-center justify-center" style="height: 58px;">
-              Press <span class="key-cap mx-1">Enter</span> to open chat · <span class="key-cap mx-1">Space</span> for next event
+          <div id="chatHint" onclick="openChat()" class="text-xs cursor-pointer hover:bg-white/5 transition-colors" style="color: #465264;">
+            <div class="flex items-center justify-center py-3.5 px-3">
+              Tap or press <span class="key-cap mx-1">Enter</span> to open chat · <span class="key-cap mx-1">Space</span> for next event
             </div>
           </div>
         </div>
       </main>
 
       <!-- RIGHT: Stats & Active Timers -->
-      <aside class="flex flex-col" style="width: 245px; background: var(--bg-panel); border-left: 1px solid var(--border-gold);">
+      <aside id="rightSidebar" class="hidden lg:flex flex-col w-full lg:w-[245px] shrink-0" style="background: var(--bg-panel); border-left: 1px solid var(--border-gold);">
         <div class="px-4 py-2 text-xs font-semibold tracking-wider flex items-center justify-between"
              style="color: var(--gold); border-bottom: 1px solid var(--border-gold);">
           <span>LIST AUDIT STATS</span>
@@ -685,13 +733,25 @@
     </div>
 
     <!-- ========== TEAM ROSTER & PREFERENCES MODAL ========== -->
-    <div id="rosterModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+    <div id="rosterModal" class="fixed inset-0 flex items-center justify-center hidden z-50 p-2 sm:p-4"
          style="background: rgba(1, 8, 16, 0.82);">
-      <div class="w-full max-w-lg rounded-lg p-5 space-y-4"
+      <div class="w-full max-w-lg rounded-xl p-4 sm:p-5 space-y-4 max-h-[90vh] overflow-y-auto"
            style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.75);">
         <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
-          <span class="text-sm font-bold" style="color: var(--gold);">⚙️ Team Roster, Role &amp; Name Library</span>
+          <span class="text-sm font-bold" style="color: var(--gold);">⚙️ Team Roster, Role &amp; Preferences</span>
           <button onclick="toggleRosterModal()" class="text-xs px-2 py-0.5 rounded" style="color: var(--text-light); cursor: pointer;">✕</button>
+        </div>
+
+        <!-- Quick Access to Rules (Great for Mobile!) -->
+        <div class="flex items-center justify-between p-2 rounded text-xs" style="background:#091220; border:1px solid #1E2B40;">
+          <div>
+            <div class="font-semibold" style="color:var(--text-bright);">🎯 Timing Rules &amp; Strictness</div>
+            <div class="text-[11px]" style="color:var(--text-light);">Current tolerance: <span id="rulesMobileSummary" class="mono font-semibold" style="color:var(--gold);">-20s / +3s</span></div>
+          </div>
+          <button onclick="toggleRosterModal(); toggleRulesModal();" class="px-2.5 py-1 rounded text-xs font-semibold"
+                  style="background:#132034; border:1px solid var(--border-gold); color:var(--gold); cursor:pointer;">
+            Adjust Rules →
+          </button>
         </div>
 
         <!-- Quick Player Identity Switcher (e.g. V1dde vs Nobo) -->
@@ -732,12 +792,12 @@
               <button onclick="loadGardenGamingPreset()" class="px-2.5 py-1 rounded text-[11px] font-semibold"
                       style="background: rgba(29, 185, 84, 0.14); border: 1px solid rgba(29, 185, 84, 0.4); color: var(--correct); cursor: pointer;"
                       title="Load Garden Gaming Summer roster (Krasito, Don, V1dde, Kalle, Nobozif)">
-                🌱 Garden Gaming (Summer)
+                🌱 Garden Gaming
               </button>
               <button onclick="randomizeModalTeammates()" class="px-2.5 py-1 rounded text-[11px] font-semibold"
                       style="background: rgba(200, 155, 60, 0.16); border: 1px solid var(--border-highlight); color: var(--gold); cursor: pointer;"
                       title="Roll random names from the 125+ LoLPros / EUW High-Elo / ERL library (keeps your own name)">
-                🎲 Randomize Teammates
+                🎲 Randomize
               </button>
             </div>
           </div>
@@ -754,7 +814,7 @@
         </div>
 
         <div class="flex items-center justify-between pt-2" style="border-top: 1px solid var(--border-gold);">
-          <span class="text-[11px]" style="color: var(--text-light);">Library: 125+ LoLPros, NLC/DK Ligaen, LEC &amp; EUW SoloQ tags</span>
+          <span class="text-[11px]" style="color: var(--text-light);">Library: 125+ LoLPros &amp; EUW tags</span>
           <button onclick="saveRosterPreferences()" class="px-4 py-1.5 rounded text-xs font-semibold"
                   style="background: var(--gold); color: var(--bg-dark); cursor: pointer;">
             Save &amp; Apply
@@ -764,9 +824,9 @@
     </div>
 
     <!-- ========== TIMING RULES & STRICTNESS MODAL ========== -->
-    <div id="rulesModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+    <div id="rulesModal" class="fixed inset-0 flex items-center justify-center hidden z-50 p-2 sm:p-4"
          style="background: rgba(1, 8, 16, 0.84);">
-      <div class="w-full max-w-md rounded-lg p-5 space-y-4"
+      <div class="w-full max-w-md rounded-xl p-4 sm:p-5 space-y-4 max-h-[90vh] overflow-y-auto"
            style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.78);">
         <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
           <span class="text-sm font-bold" style="color: var(--gold);">🎯 Custom Timing Rules &amp; Strictness</span>
@@ -847,12 +907,12 @@
     </div>
 
     <!-- ========== SPELL COOLDOWN & HASTE CHEAT SHEET MODAL ========== -->
-    <div id="cheatSheetModal" class="fixed inset-0 flex items-center justify-center hidden z-50"
+    <div id="cheatSheetModal" class="fixed inset-0 flex items-center justify-center hidden z-50 p-2 sm:p-4"
          style="background: rgba(1, 8, 16, 0.86);">
-      <div class="w-full max-w-3xl rounded-lg p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+      <div class="w-full max-w-3xl rounded-xl p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 max-h-[92vh] overflow-y-auto"
            style="background: var(--bg-panel); border: 1px solid var(--border-highlight); box-shadow: 0 16px 40px rgba(0,0,0,0.8);">
         <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid var(--border-gold);">
-          <span class="text-sm font-bold" style="color: var(--gold);">📖 Summoner Spell Cooldown &amp; Haste Cheat Sheet (League Wiki Accurate)</span>
+          <span class="text-sm font-bold" style="color: var(--gold);">📖 Summoner Spell Cooldown &amp; Haste Cheat Sheet</span>
           <button onclick="toggleCheatSheetModal()" class="text-xs px-2 py-0.5 rounded" style="color: var(--text-light); cursor: pointer;">✕</button>
         </div>
 
@@ -1350,8 +1410,11 @@ function createInitialState(isNewDraft = true) {
 
 // ===================== RULES, HASTE TOGGLE & CHEAT SHEET =====================
 function updateRulesSummaryUI() {
+  const text = `-${earlyToleranceSec}s / +${lateToleranceSec}s`;
   const lbl = document.getElementById('rulesSummaryLabel');
-  if (lbl) lbl.textContent = `-${earlyToleranceSec}s / +${lateToleranceSec}s`;
+  if (lbl) lbl.textContent = text;
+  const mob = document.getElementById('rulesMobileSummary');
+  if (mob) mob.textContent = text;
 }
 
 function toggleRulesModal() {
@@ -1437,98 +1500,193 @@ function toggleCheatSheetModal() {
   }
 }
 
+let cheatSheetView = 'auto'; // 'auto' | 'cards' | 'table'
+
+function setCheatSheetView(v) {
+  cheatSheetView = v;
+  renderCheatSheetModal();
+}
+
 function renderCheatSheetModal() {
   const body = document.getElementById('cheatSheetBody');
   if (!body) return;
 
+  const isCards = cheatSheetView === 'cards' || (cheatSheetView === 'auto' && window.innerWidth < 768);
+
   const tiers = [
     {
       cd: 300,
-      badge: '★ MOST IMPORTANT (Track Every Game)',
+      badge: '★ CORE PRIORITY — 5:00',
       badgeColor: 'var(--gold)',
+      title: 'Flash & Teleport (Track Every Single Game)',
       spells: [SPELLS.flash, SPELLS.tp],
     },
     {
       cd: 240,
-      badge: '⚡ HIGH VALUE IN MID/LATE TEAMFIGHTS (Cln & Exh > Gh & Heal)',
+      badge: '⚡ TEAMFIGHT & SKIRMISH — 4:00',
       badgeColor: '#22D3EE',
+      title: 'Cleanse & Exhaust > Ghost & Heal',
       spells: [SPELLS.cleanse, SPELLS.exhaust, SPELLS.ghost, SPELLS.heal],
     },
     {
       cd: 180,
-      badge: 'LOW PRIORITY (Rarely Timed)',
+      badge: '🛡️ COMBAT & DUELING — 3:00',
       badgeColor: '#64748B',
+      title: 'Barrier (ADC Default) & Ignite',
       spells: [SPELLS.ignite, SPELLS.barrier],
     },
   ];
 
-  const rowsHtml = tiers.map(tier => {
-    const tData = HASTE_TABLE[tier.cd];
-    const spellsHtml = tier.spells.map(sp => `
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded overflow-hidden shrink-0 flex items-center justify-center" style="background:${sp.bg}; border:1px solid #463714;">
-          <img src="${getSpellIconUrl(sp.id)}" alt="${sp.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
-          <span style="display:none; font-size:11px;">${sp.icon}</span>
-        </div>
-        <span class="font-semibold" style="color:var(--text-bright);">${sp.name}</span>
-        <span class="mono text-[10px] px-1 rounded" style="background:#0A1422; color:${sp.color}; border:1px solid #1C293D;">${sp.short || 'none / f'}</span>
+  let contentHtml = '';
+
+  if (isCards) {
+    // Mobile-optimized high readability cards
+    contentHtml = `
+      <div class="space-y-3">
+        ${tiers.map(tier => {
+          const tData = HASTE_TABLE[tier.cd];
+          const spellsIcons = tier.spells.map(sp => `
+            <div class="flex items-center gap-1.5 px-2 py-0.5 rounded" style="background:#091424; border:1px solid #1C293D;">
+              <img src="${getSpellIconUrl(sp.id)}" class="w-4 h-4 rounded object-cover" onerror="this.style.display='none'" />
+              <span class="text-xs font-semibold" style="color:${sp.color};">${sp.name}</span>
+            </div>
+          `).join('');
+
+          return `
+            <div class="p-3 rounded-lg" style="background:rgba(4, 10, 18, 0.9); border:1px solid var(--border-gold);">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color:${tier.badgeColor};">${tier.badge}</span>
+                <span class="mono text-xs font-bold" style="color:var(--text-bright);">${fmt(tier.cd)} Base</span>
+              </div>
+              <div class="text-[11px] mb-2" style="color:var(--text-light);">${tier.title}</div>
+              <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
+                ${spellsIcons}
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="p-2 rounded text-center" style="background:#08101C; border:1px solid #162338;">
+                  <div class="text-[10px]" style="color:var(--text-light);">Base (0 Haste)</div>
+                  <div class="mono text-base font-bold" style="color:var(--text-bright);">${fmt(tData.none.cleanCd)}</div>
+                  <div class="mono text-[9px]" style="color:#64748B;">Wiki: ${tData.none.exactStr}</div>
+                </div>
+                <div class="p-2 rounded text-center" style="background:#08101C; border:1px solid #162338;">
+                  <div class="text-[10px] flex items-center justify-center gap-1" style="color:#60A5FA;">
+                    <img src="${getBootsIconUrl()}" class="w-3.5 h-3.5 rounded" onerror="this.style.display='none'" />
+                    <span>Boots (+10)</span>
+                  </div>
+                  <div class="mono text-base font-bold" style="color:#60A5FA;">${fmt(tData.boots.cleanCd)}</div>
+                  <div class="mono text-[9px]" style="color:#64748B;">Wiki: ${tData.boots.exactStr}</div>
+                </div>
+                <div class="p-2 rounded text-center" style="background:#08101C; border:1px solid #162338;">
+                  <div class="text-[10px] flex items-center justify-center gap-1" style="color:#22D3EE;">
+                    <img src="${COSMIC_ICON_URL}" class="w-3.5 h-3.5 rounded" onerror="this.style.display='none'" />
+                    <span>Cosmic (+18)</span>
+                  </div>
+                  <div class="mono text-base font-bold" style="color:#22D3EE;">${fmt(tData.cosmic.cleanCd)}</div>
+                  <div class="mono text-[9px]" style="color:#64748B;">Wiki: ${tData.cosmic.exactStr}</div>
+                </div>
+                <div class="p-2 rounded text-center" style="background:#08101C; border:1px solid #162338;">
+                  <div class="text-[10px] flex items-center justify-center gap-1" style="color:var(--gold);">
+                    <img src="${COSMIC_ICON_URL}" class="w-3 h-3 rounded" onerror="this.style.display='none'" />
+                    <img src="${getBootsIconUrl()}" class="w-3 h-3 rounded" onerror="this.style.display='none'" />
+                    <span>Both (+28)</span>
+                  </div>
+                  <div class="mono text-base font-bold" style="color:var(--gold);">${fmt(tData.both.cleanCd)}</div>
+                  <div class="mono text-[9px]" style="color:#64748B;">Wiki: ${tData.both.exactStr}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
-    `).join('');
-
-    const formatCell = (cell, color = 'var(--text-bright)') => {
-      const alt = cell.altCleanCd !== cell.cleanCd ? ` <span class="text-[10px]" style="color:var(--text-light);">/ ${fmt(cell.altCleanCd)}</span>` : '';
-      return `
-        <div class="mono font-bold text-sm" style="color:${color};">${fmt(cell.cleanCd)}${alt}</div>
-        <div class="mono text-[10px]" style="color:#64748B;">Wiki: ${cell.exactStr}</div>
-      `;
-    };
-
-    return `
-      <tr style="border-bottom: 1px solid #162234;">
-        <td class="p-2.5 align-top space-y-1.5">
-          <div class="text-[9.5px] font-bold uppercase tracking-wider mb-1" style="color:${tier.badgeColor};">${tier.badge}</div>
-          ${spellsHtml}
-        </td>
-        <td class="p-2.5 align-middle text-center mono font-bold text-sm" style="color:var(--text-bright);">${fmt(tData.none.cleanCd)}</td>
-        <td class="p-2.5 align-middle text-center">${formatCell(tData.boots, '#60A5FA')}</td>
-        <td class="p-2.5 align-middle text-center">${formatCell(tData.cosmic, '#22D3EE')}</td>
-        <td class="p-2.5 align-middle text-center">${formatCell(tData.both, 'var(--gold)')}</td>
-      </tr>
     `;
-  }).join('');
+  } else {
+    // Full Comparative Table
+    const rowsHtml = tiers.map(tier => {
+      const tData = HASTE_TABLE[tier.cd];
+      const spellsHtml = tier.spells.map(sp => `
+        <div class="flex items-center gap-1.5">
+          <div class="w-5 h-5 rounded overflow-hidden shrink-0 flex items-center justify-center" style="background:${sp.bg}; border:1px solid #463714;">
+            <img src="${getSpellIconUrl(sp.id)}" alt="${sp.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+            <span style="display:none; font-size:11px;">${sp.icon}</span>
+          </div>
+          <span class="font-semibold" style="color:var(--text-bright);">${sp.name}</span>
+          <span class="mono text-[10px] px-1 rounded" style="background:#0A1422; color:${sp.color}; border:1px solid #1C293D;">${sp.short || 'none / f'}</span>
+        </div>
+      `).join('');
+
+      const formatCell = (cell, color = 'var(--text-bright)') => {
+        const alt = cell.altCleanCd !== cell.cleanCd ? ` <span class="text-[10px]" style="color:var(--text-light);">/ ${fmt(cell.altCleanCd)}</span>` : '';
+        return `
+          <div class="mono font-bold text-sm" style="color:${color};">${fmt(cell.cleanCd)}${alt}</div>
+          <div class="mono text-[10px]" style="color:#64748B;">Wiki: ${cell.exactStr}</div>
+        `;
+      };
+
+      return `
+        <tr style="border-bottom: 1px solid #162234;">
+          <td class="p-2.5 align-top space-y-1.5">
+            <div class="text-[9.5px] font-bold uppercase tracking-wider mb-1" style="color:${tier.badgeColor};">${tier.badge}</div>
+            ${spellsHtml}
+          </td>
+          <td class="p-2.5 align-middle text-center mono font-bold text-sm" style="color:var(--text-bright);">${fmt(tData.none.cleanCd)}</td>
+          <td class="p-2.5 align-middle text-center">${formatCell(tData.boots, '#60A5FA')}</td>
+          <td class="p-2.5 align-middle text-center">${formatCell(tData.cosmic, '#22D3EE')}</td>
+          <td class="p-2.5 align-middle text-center">${formatCell(tData.both, 'var(--gold)')}</td>
+        </tr>
+      `;
+    }).join('');
+
+    contentHtml = `
+      <div class="overflow-x-auto rounded-lg" style="border: 1px solid var(--border-gold); background: rgba(4, 10, 18, 0.9);">
+        <table class="w-full text-left border-collapse min-w-[550px]">
+          <thead>
+            <tr style="background:#0B1524; border-bottom:1px solid var(--border-gold); color:var(--text-light);">
+              <th class="p-2.5 text-[11px] uppercase tracking-wider">Spells &amp; Chat Tags</th>
+              <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">Base (0 Haste)</th>
+              <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                  <span style="color:#60A5FA;">Boots (+10)</span>
+                </div>
+              </th>
+              <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                  <span style="color:#22D3EE;">Cosmic (+18)</span>
+                </div>
+              </th>
+              <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                  <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
+                  <span style="color:var(--gold);">Both (+28)</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
 
   body.innerHTML = `
-    <div class="overflow-x-auto rounded-lg" style="border: 1px solid var(--border-gold); background: rgba(4, 10, 18, 0.9);">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr style="background:#0B1524; border-bottom:1px solid var(--border-gold); color:var(--text-light);">
-            <th class="p-2.5 text-[11px] uppercase tracking-wider">Spells &amp; Chat Tags</th>
-            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">Base (0 Haste)</th>
-            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
-              <div class="flex items-center justify-center gap-1">
-                <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
-                <span style="color:#60A5FA;">Boots (+10)</span>
-              </div>
-            </th>
-            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
-              <div class="flex items-center justify-center gap-1">
-                <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
-                <span style="color:#22D3EE;">Cosmic (+18)</span>
-              </div>
-            </th>
-            <th class="p-2.5 text-[11px] uppercase tracking-wider text-center">
-              <div class="flex items-center justify-center gap-1">
-                <img src="${COSMIC_ICON_URL}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
-                <img src="${getBootsIconUrl()}" class="w-4 h-4 rounded" onerror="this.style.display='none'" />
-                <span style="color:var(--gold);">Both (+28)</span>
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+    <!-- View Switcher -->
+    <div class="flex items-center justify-between pb-1">
+      <span class="text-xs font-semibold" style="color:var(--text-light);">Display Style:</span>
+      <div class="flex items-center gap-1 p-0.5 rounded" style="background:var(--bg-dark); border:1px solid var(--border-gold);">
+        <button onclick="setCheatSheetView('cards')" class="mode-btn ${isCards ? 'active' : ''}" style="padding:3px 10px;">
+          📱 Quick Cards
+        </button>
+        <button onclick="setCheatSheetView('table')" class="mode-btn ${!isCards ? 'active' : ''}" style="padding:3px 10px;">
+          📊 Full Table
+        </button>
+      </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+
+    ${contentHtml}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] pt-1">
       <div class="p-2.5 rounded" style="background:#060E1A; border:1px solid #162234;">
         <div class="font-semibold mb-0.5" style="color:#22D3EE;">⚡ Flash + Cosmic Insight</div>
         <div style="color:var(--text-light);">Memorize <strong class="mono" style="color:var(--text-bright);">+4:15</strong> (add 4 min, +15s). Exact Wiki is 4:14.2s.</div>
@@ -1600,6 +1758,9 @@ function setMode(mode) {
   document.getElementById('hasteQuizView').classList.toggle('hidden', !isQuiz);
   document.getElementById('chatFeedWrapper').classList.toggle('hidden', !isChat);
   document.getElementById('chatContainer').classList.toggle('hidden', !isChat);
+  const subBanner = document.getElementById('subBanner');
+  if (subBanner) subBanner.classList.toggle('hidden', isQuiz);
+  updateResponsivePanels();
 
   if (isMath) {
     pause();
@@ -1886,16 +2047,16 @@ function renderQuizQuestion() {
 
   document.getElementById('quizChoices').innerHTML = q.options.map((opt, idx) => `
     <button type="button" data-quiz-idx="${idx}" onclick="answerQuizChoice(${opt.valSec}, this)"
-            class="py-3 px-4 rounded-lg mono text-lg font-bold transition-all"
-            style="background:#0C1628; border:1px solid #243550; color:var(--text-bright); cursor:pointer;">
+            class="py-3 sm:py-3.5 px-2 sm:px-4 rounded-xl mono text-xl sm:text-2xl font-bold transition-all min-h-[58px] sm:min-h-[66px] flex flex-col items-center justify-center active:scale-[0.98] select-none"
+            style="background:#0C1628; border:1px solid #243550; color:var(--text-bright); cursor:pointer; touch-action:manipulation;">
       ${fmt(opt.valSec)}
-      <span class="block text-[10px] font-normal" style="color:#64748B;">type: ${fmtCompact(opt.valSec)}</span>
+      <span class="block text-[10px] sm:text-[11px] font-normal" style="color:#64748B;">type: ${fmtCompact(opt.valSec)}</span>
     </button>
   `).join('');
 
   const inp = document.getElementById('quizInput');
   inp.value = '';
-  inp.focus();
+  if (window.innerWidth >= 768) inp.focus();
   document.getElementById('quizFeedback').textContent = '';
 }
 
@@ -2509,6 +2670,9 @@ function manualPingEnemy(roleId, spellId = 'flash') {
   const sp = enemy.spells[spellId];
   if (sp && sp.up) {
     fireSinglePing(enemy, spellId);
+    if (window.innerWidth < 1024) {
+      setMobileTab('chat');
+    }
   }
 }
 
@@ -2705,6 +2869,80 @@ function renderClipboardPreview() {
     }
     return `<span class="px-1.5 py-0.5 rounded" style="background:rgba(29,185,84,0.12); color:var(--correct);">${label}</span>`;
   }).join(' ');
+}
+
+function pasteClipboardToInput() {
+  if (!savedClipboard) return;
+  const chatInputEl = document.getElementById('chatInput');
+  const beforeVal = chatInputEl.value;
+  const startPos = chatInputEl.selectionStart || beforeVal.length;
+  const separator = (beforeVal && !beforeVal.endsWith(' ') && !beforeVal.startsWith(' ', startPos)) ? ' ' : '';
+  chatInputEl.value = beforeVal.slice(0, startPos) + separator + savedClipboard + ' ';
+  chatInputEl.focus();
+}
+
+function copyCurrentInput() {
+  const chatInputEl = document.getElementById('chatInput');
+  const text = (chatInputEl && chatInputEl.value.trim()) || savedClipboard || '';
+  if (text) {
+    pressedCtrlCThisTurn = true;
+    setClipboardString(text);
+    const badge = document.getElementById('copyHabitBadge');
+    if (badge) badge.classList.remove('hidden');
+  }
+}
+
+let currentMobileTab = 'chat'; // 'chat' | 'scoreboard' | 'timers'
+
+function setMobileTab(tab) {
+  currentMobileTab = tab;
+  ['chat', 'scoreboard', 'timers'].forEach(t => {
+    const btn = document.getElementById('mobTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  updateResponsivePanels();
+}
+
+function updateResponsivePanels() {
+  const isDesktop = window.innerWidth >= 1024;
+  const isChatMode = currentMode !== 'quiz' && currentMode !== 'math';
+  const leftEl = document.getElementById('leftSidebar');
+  const rightEl = document.getElementById('rightSidebar');
+  const mainEl = document.getElementById('mainContent');
+  const mobBar = document.getElementById('mobileTabBar');
+
+  if (!isChatMode) {
+    // Quiz or Math Sprint mode: hide sidebars and mob bar everywhere!
+    if (leftEl) leftEl.classList.add('hidden');
+    if (rightEl) rightEl.classList.add('hidden');
+    if (mainEl) mainEl.classList.remove('hidden');
+    if (mobBar) mobBar.classList.add('hidden');
+    return;
+  }
+
+  // Chat tracking mode:
+  if (isDesktop) {
+    if (leftEl) leftEl.classList.remove('hidden');
+    if (rightEl) rightEl.classList.remove('hidden');
+    if (mainEl) mainEl.classList.remove('hidden');
+    if (mobBar) mobBar.classList.add('hidden');
+  } else {
+    // Mobile / Tablet screens:
+    if (mobBar) mobBar.classList.remove('hidden');
+    if (currentMobileTab === 'chat') {
+      if (leftEl) leftEl.classList.add('hidden');
+      if (rightEl) rightEl.classList.add('hidden');
+      if (mainEl) mainEl.classList.remove('hidden');
+    } else if (currentMobileTab === 'scoreboard') {
+      if (leftEl) leftEl.classList.remove('hidden');
+      if (rightEl) rightEl.classList.add('hidden');
+      if (mainEl) mainEl.classList.add('hidden');
+    } else if (currentMobileTab === 'timers') {
+      if (leftEl) leftEl.classList.add('hidden');
+      if (rightEl) rightEl.classList.remove('hidden');
+      if (mainEl) mainEl.classList.add('hidden');
+    }
+  }
 }
 
 function openChat() {
@@ -3187,6 +3425,8 @@ function renderStats() {
 function renderTimers() {
   G.activeTimers = G.activeTimers.filter(t => !isTimerExpired(t));
   document.getElementById('activeCount').textContent = G.activeTimers.length;
+  const mobBadge = document.getElementById('mobActiveBadge');
+  if (mobBadge) mobBadge.textContent = G.activeTimers.length;
 
   const el = document.getElementById('activeTimers');
   if (!G.activeTimers.length) {
@@ -3461,6 +3701,13 @@ renderBoard();
 renderStats();
 renderTimers();
 renderClipboardPreview();
+window.addEventListener('resize', () => {
+  updateResponsivePanels();
+  if (!document.getElementById('cheatSheetModal').classList.contains('hidden') && cheatSheetView === 'auto') {
+    renderCheatSheetModal();
+  }
+});
+updateResponsivePanels();
 </script>
 </body>
 </html>
